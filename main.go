@@ -11,9 +11,16 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 
 	"golang.org/x/term"
 )
+
+var gOpts struct {
+	extensions []string
+	title      bool
+	wrapscroll bool
+}
 
 type picture struct {
 	name          string
@@ -28,6 +35,10 @@ func newPicture(path string) (*picture, error) {
 	if err != nil {
 		return nil, fmt.Errorf("abs: %w", err)
 	}
+	if !slices.Contains(gOpts.extensions, filepath.Ext(absPath)) {
+		return nil, fmt.Errorf("not a supported file: %s", path)
+	}
+
 	f, err := os.Open(path)
 	if err != nil {
 		return nil, fmt.Errorf("open: %s", err)
@@ -58,6 +69,9 @@ func newPicture(path string) (*picture, error) {
 }
 
 func init() {
+	gOpts.extensions = []string{".gif", ".heic", ".jpg", ".jpeg", ".png", ".tiff", ".webp"}
+	gOpts.title = true
+	gOpts.wrapscroll = false
 	flag.Usage = func() {
 		fmt.Fprintf(flag.CommandLine.Output(), "usage: %s [-h] file [file ...]\n", os.Args[0])
 		flag.PrintDefaults()
@@ -98,7 +112,9 @@ func main() {
 		if last != curr {
 			last = curr
 			printStatus(pics[curr], curr, len(pics))
-			setTitle(fmt.Sprintf("%s - %s", os.Args[0], pics[curr].name))
+			if gOpts.title {
+				setTitle(fmt.Sprintf("%s - %s", os.Args[0], pics[curr].name))
+			}
 			if err := clearImage(); err != nil {
 				fmt.Fprintln(os.Stderr, "clearing image:", err)
 				os.Exit(1)
@@ -163,11 +179,17 @@ func showImage(path string) error {
 }
 
 func next(idx, n int) int {
-	return (idx + 1) % n
+	if gOpts.wrapscroll {
+		return (idx + 1) % n
+	}
+	return min(idx+1, n-1)
 }
 
 func prev(idx, n int) int {
-	return (idx - 1 + n) % n
+	if gOpts.wrapscroll {
+		return (idx - 1 + n) % n
+	}
+	return max(0, idx-1)
 }
 
 func printStatus(pic *picture, idx, total int) {
