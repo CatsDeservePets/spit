@@ -83,6 +83,7 @@ func main() {
 	}
 
 	showAlternateScreen()
+	hideCursor()
 	oldState, err := term.MakeRaw(int(os.Stdin.Fd()))
 	if err != nil {
 		os.Exit(1)
@@ -90,11 +91,14 @@ func main() {
 
 	defer term.Restore(int(os.Stdin.Fd()), oldState)
 	defer hideAlternateScreen()
+	defer showCursor()
 
 	reader := bufio.NewReader(os.Stdin)
 	for {
 		if last != curr {
 			last = curr
+			printStatus(pics[curr], curr, len(pics))
+			setTitle(fmt.Sprintf("%s - %s", os.Args[0], pics[curr].name))
 			if err := clearImage(); err != nil {
 				fmt.Fprintln(os.Stderr, "clearing image:", err)
 				os.Exit(1)
@@ -133,11 +137,19 @@ func clearImage() error {
 }
 
 func showImage(path string) error {
+	cols, rows, err := term.GetSize(int(os.Stdout.Fd()))
+	if err != nil {
+		return fmt.Errorf("getting terminal size: %w", err)
+	}
+
+	place := fmt.Sprintf("%dx%d@0x0", cols, rows-2)
 	cmd := exec.Command(
 		"kitty", "+kitten", "icat",
 		"--silent",
 		"--stdin", "no",
 		"--transfer-mode", "memory",
+		"--place", place,
+		"--scale-up",
 		path,
 	)
 	cmd.Stdout = os.Stdout
@@ -152,4 +164,20 @@ func next(idx, n int) int {
 
 func prev(idx, n int) int {
 	return (idx - 1 + n) % n
+}
+
+func printStatus(pic *picture, idx, total int) {
+	cols, rows, err := term.GetSize(int(os.Stdout.Fd()))
+	if err != nil {
+		return
+	}
+
+	left := fmt.Sprintf("%s  %dB  %dx%d", pic.name, pic.size, pic.width, pic.height)
+	right := fmt.Sprintf("%d/%d", idx+1, total)
+
+	moveCursor(rows, 1)
+	clearLine()
+	fmt.Print(left)
+	moveCursor(rows, cols-len(right)+1)
+	fmt.Print(right)
 }
