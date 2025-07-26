@@ -119,6 +119,10 @@ func main() {
 			curr = next(curr, len(pics))
 		case 'h', 'k':
 			curr = prev(curr, len(pics))
+		case 'g':
+			curr = 0
+		case 'G':
+			curr = len(pics) - 1
 		}
 	}
 }
