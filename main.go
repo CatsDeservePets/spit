@@ -16,10 +16,63 @@ import (
 	"golang.org/x/term"
 )
 
-var gOpts struct {
-	extensions []string
-	title      bool
-	wrapscroll bool
+var (
+	gConfigPath   = ""
+	gHelp         = false
+	gPrintDefault = false
+)
+
+func main() {
+	flag.StringVar(&gConfigPath, "config", getConfigDir(), "specify the `path` to the configuration file")
+	flag.BoolVar(&gHelp, "help", false, "show this help message and exit")
+	flag.BoolVar(&gPrintDefault, "print-default", false, "print the default configuration to stdout and exit")
+	flag.Usage = func() {
+		usage := fmt.Sprintf("usage: %s [options] file [file ...]\n", os.Args[0])
+		detailed := `
+spit - Show Pictures in Terminal
+
+positional arguments:
+  file
+        image(s) to display
+
+options:
+`
+		// Checking for `h` manually instead of adding it as a flag
+		// prevents usage from showing two separate `help` entries,
+		// as the flag package doesn't link related flags together.
+		if gHelp || slices.Contains(os.Args[1:], "-h") {
+			// When user-initiated, print detailed usage message to stdout
+			flag.CommandLine.SetOutput(os.Stdout)
+			fmt.Fprint(flag.CommandLine.Output(), usage+detailed)
+			flag.PrintDefaults()
+		} else {
+			// When triggered by an error, print compact version to stderr
+			fmt.Fprint(flag.CommandLine.Output(), usage)
+		}
+	}
+	flag.Parse()
+	if gHelp {
+		flag.Usage()
+		os.Exit(0)
+	}
+	if gPrintDefault {
+		// TODO
+		os.Exit(0)
+	}
+	if flag.NArg() < 1 {
+		fmt.Fprintln(os.Stderr, "the following arguments are required: file")
+		flag.Usage()
+		os.Exit(2)
+	}
+
+	if gConfigPath != "" {
+		if err := loadConfig(gConfigPath); err != nil {
+			fmt.Fprintln(os.Stderr, "loading config:", err)
+			os.Exit(1)
+		}
+	}
+
+	run()
 }
 
 type picture struct {
@@ -68,23 +121,7 @@ func newPicture(path string) (*picture, error) {
 	}, err
 }
 
-func init() {
-	gOpts.extensions = []string{".gif", ".heic", ".jpg", ".jpeg", ".png", ".tiff", ".webp"}
-	gOpts.title = true
-	gOpts.wrapscroll = false
-	flag.Usage = func() {
-		fmt.Fprintf(flag.CommandLine.Output(), "usage: %s [-h] file [file ...]\n", os.Args[0])
-		flag.PrintDefaults()
-	}
-	flag.Parse()
-	if flag.NArg() < 1 {
-		flag.Usage()
-		fmt.Fprintf(flag.CommandLine.Output(), "%s: error: the following arguments are required: file\n", os.Args[0])
-		os.Exit(1)
-	}
-}
-
-func main() {
+func run() {
 	pics := make([]*picture, 0)
 	curr := 0
 	last := -1
