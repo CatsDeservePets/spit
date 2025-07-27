@@ -95,6 +95,10 @@ func main() {
 			pics = append(pics, pic)
 		}
 	}
+	if len(pics) == 0 {
+		fmt.Fprintf(flag.CommandLine.Output(), "%s: error: no allowed files found\n", os.Args[0])
+		os.Exit(1)
+	}
 
 	showAlternateScreen()
 	hideCursor()
