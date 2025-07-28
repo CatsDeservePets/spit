@@ -23,7 +23,7 @@ func init() {
 	gOpts = options{
 		cleaner:    "",
 		extensions: []string{".gif", ".heic", ".jpg", ".jpeg", ".png", ".tiff", ".webp"},
-		previewer:  "kitty +kitten icat --clear --stdin=no --transfer-mode=memory --place %cx%r@0x0 --scale-up=yes %f",
+		previewer:  "kitten icat --clear --stdin=no --transfer-mode=memory --place %cx%r@0x0 --scale-up=yes %f",
 		title:      false,
 		wrapscroll: true,
 	}

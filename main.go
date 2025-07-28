@@ -154,7 +154,6 @@ func run() {
 	for {
 		if last != curr {
 			last = curr
-			printStatus(pics[curr], curr, len(pics))
 			if gOpts.title {
 				setTitle(fmt.Sprintf("%s - %s", os.Args[0], pics[curr].name))
 			}
@@ -167,10 +166,13 @@ func run() {
 			path := pics[curr].path
 
 			generateCmd := func(s string) (string, []string) {
+				if s == "" {
+					return "", nil
+				}
 				r := strings.NewReplacer(
 					"%%", "%",
 					"%c", strconv.Itoa(cols),
-					"%r", strconv.Itoa(rows-2),
+					"%r", strconv.Itoa(rows-2), // leave space for statusline
 					"%f", path,
 				)
 
@@ -189,10 +191,12 @@ func run() {
 				fmt.Fprintln(os.Stderr, "clearing image:", err)
 				os.Exit(1)
 			}
+			moveCursor(1, 1)
 			if err := execCmd(generateCmd(gOpts.previewer)); err != nil {
 				fmt.Fprintln(os.Stderr, "previewing image:", err)
 				os.Exit(1)
 			}
+			printStatus(pics[curr], curr, len(pics))
 		}
 		b, err := reader.ReadByte()
 		if err != nil {
@@ -214,6 +218,9 @@ func run() {
 }
 
 func execCmd(name string, args []string) error {
+	if strings.TrimSpace(name) == "" {
+		return nil
+	}
 	cmd := exec.Command(name, args...)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
