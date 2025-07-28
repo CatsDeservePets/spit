@@ -12,6 +12,8 @@ import (
 	"os/exec"
 	"path/filepath"
 	"slices"
+	"strconv"
+	"strings"
 
 	"golang.org/x/term"
 )
@@ -156,12 +158,39 @@ func run() {
 			if gOpts.title {
 				setTitle(fmt.Sprintf("%s - %s", os.Args[0], pics[curr].name))
 			}
-			if err := clearImage(); err != nil {
+
+			cols, rows, err := term.GetSize(int(os.Stdout.Fd()))
+			if err != nil {
+				panic(err)
+			}
+
+			path := pics[curr].path
+
+			generateCmd := func(s string) (string, []string) {
+				r := strings.NewReplacer(
+					"%%", "%",
+					"%c", strconv.Itoa(cols),
+					"%r", strconv.Itoa(rows-2),
+					"%f", path,
+				)
+
+				parts := strings.Fields(s)
+				for i, v := range parts {
+					parts[i] = r.Replace(v)
+				}
+
+				if len(parts) < 2 {
+					return parts[0], []string{}
+				}
+				return parts[0], parts[1:]
+			}
+
+			if err := execCmd(generateCmd(gOpts.cleaner)); err != nil {
 				fmt.Fprintln(os.Stderr, "clearing image:", err)
 				os.Exit(1)
 			}
-			if err := showImage(pics[curr].path); err != nil {
-				fmt.Fprintln(os.Stderr, "displaying image:", err)
+			if err := execCmd(generateCmd(gOpts.previewer)); err != nil {
+				fmt.Fprintln(os.Stderr, "previewing image:", err)
 				os.Exit(1)
 			}
 		}
@@ -184,35 +213,8 @@ func run() {
 	}
 }
 
-func clearImage() error {
-	cmd := exec.Command(
-		"kitty", "+kitten", "icat",
-		"--clear",
-		"--stdin", "no",
-		"--transfer-mode", "memory",
-	)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-
-	return cmd.Run()
-}
-
-func showImage(path string) error {
-	cols, rows, err := term.GetSize(int(os.Stdout.Fd()))
-	if err != nil {
-		return fmt.Errorf("getting terminal size: %w", err)
-	}
-
-	place := fmt.Sprintf("%dx%d@0x0", cols, rows-2)
-	cmd := exec.Command(
-		"kitty", "+kitten", "icat",
-		"--silent",
-		"--stdin", "no",
-		"--transfer-mode", "memory",
-		"--place", place,
-		"--scale-up",
-		path,
-	)
+func execCmd(name string, args []string) error {
+	cmd := exec.Command(name, args...)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 

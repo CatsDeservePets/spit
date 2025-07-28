@@ -10,7 +10,9 @@ import (
 )
 
 type options struct {
+	cleaner    string
 	extensions []string
+	previewer  string
 	title      bool
 	wrapscroll bool
 }
@@ -19,8 +21,10 @@ var gOpts options
 
 func init() {
 	gOpts = options{
+		cleaner:    "",
 		extensions: []string{".gif", ".heic", ".jpg", ".jpeg", ".png", ".tiff", ".webp"},
-		title:      true,
+		previewer:  "kitty +kitten icat --clear --stdin=no --transfer-mode=memory --place %cx%r@0x0 --scale-up=yes %f",
+		title:      false,
 		wrapscroll: true,
 	}
 }
@@ -59,6 +63,8 @@ func loadConfig(path string) error {
 		val = strings.Trim(strings.TrimSpace(val), `"`)
 
 		switch key {
+		case "cleaner":
+			gOpts.cleaner = strings.TrimSpace(val)
 		case "extensions":
 			items := strings.Split(val, ",")
 			var exts []string
@@ -68,6 +74,8 @@ func loadConfig(path string) error {
 				}
 			}
 			gOpts.extensions = exts
+		case "previewer":
+			gOpts.previewer = strings.TrimSpace(val)
 		case "title":
 			b, err := strconv.ParseBool(val)
 			if err != nil {
