@@ -10,22 +10,26 @@ import (
 )
 
 type options struct {
-	cleaner    string
-	extensions []string
-	previewer  string
-	title      bool
-	wrapscroll bool
+	cleaner      string
+	extensions   []string
+	previewer    string
+	statusline   string
+	title        bool
+	truncatechar string
+	wrapscroll   bool
 }
 
 var gOpts options
 
 func init() {
 	gOpts = options{
-		cleaner:    "",
-		extensions: []string{".gif", ".heic", ".jpg", ".jpeg", ".png", ".tiff", ".webp"},
-		previewer:  "kitten icat --clear --stdin=no --transfer-mode=memory --place %cx%r@0x0 --scale-up=yes %f",
-		title:      false,
-		wrapscroll: true,
+		cleaner:      "",
+		extensions:   []string{".gif", ".heic", ".jpg", ".jpeg", ".png", ".tiff", ".webp"},
+		previewer:    "kitten icat --clear --stdin=no --transfer-mode=memory --place %cx%r@0x0 --scale-up=yes %f",
+		statusline:   "%f %= %wx%h  %s  %i/%t",
+		title:        false,
+		truncatechar: "<",
+		wrapscroll:   true,
 	}
 }
 
@@ -76,13 +80,16 @@ func loadConfig(path string) error {
 			gOpts.extensions = exts
 		case "previewer":
 			gOpts.previewer = strings.TrimSpace(val)
+		case "statusline":
+			gOpts.statusline = strings.TrimSpace(val)
 		case "title":
 			b, err := strconv.ParseBool(val)
 			if err != nil {
 				return fmt.Errorf("invalid value for title: %w", err)
 			}
 			gOpts.title = b
-
+		case "truncatechar":
+			gOpts.truncatechar = strings.TrimSpace(val)
 		case "wrapscroll":
 			b, err := strconv.ParseBool(val)
 			if err != nil {

@@ -14,6 +14,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"unicode/utf8"
 
 	"golang.org/x/term"
 )
@@ -196,7 +197,7 @@ func run() {
 				fmt.Fprintln(os.Stderr, "previewing image:", err)
 				os.Exit(1)
 			}
-			printStatus(pics[curr], curr, len(pics))
+			printStatus(pics[curr], curr+1, len(pics))
 		}
 		b, err := reader.ReadByte()
 		if err != nil {
@@ -243,17 +244,61 @@ func prev(idx, n int) int {
 }
 
 func printStatus(pic *picture, idx, total int) {
-	cols, rows, err := term.GetSize(int(os.Stdout.Fd()))
-	if err != nil {
+	if gOpts.statusline == "" {
 		return
 	}
+	cols, rows, err := term.GetSize(int(os.Stdout.Fd()))
+	if err != nil {
+		panic(err)
+	}
 
-	left := fmt.Sprintf("%s  %dB  %dx%d", pic.name, pic.size, pic.width, pic.height)
-	right := fmt.Sprintf("%d/%d", idx+1, total)
+	r := strings.NewReplacer(
+		"%%", "%",
+		"%f", pic.name,
+		"%h", strconv.Itoa(pic.height),
+		"%i", strconv.Itoa(idx),
+		"%s", fmt.Sprintf("%dB", pic.size),
+		"%t", strconv.Itoa(total),
+		"%w", strconv.Itoa(pic.width),
+	)
+	s := r.Replace(gOpts.statusline)
+	if pic.height == 0 && pic.width == 0 {
+		s = strings.ReplaceAll(strings.ReplaceAll(s, "0x0", "N/A"), "0X0", "N/A")
+	}
+
+	gaps := strings.Count(gOpts.statusline, "%=")
+	excess := (utf8.RuneCountInString(s) - (gaps)*2) - cols // account for %=
+	if excess > 0 {
+		// try truncating filename if possible
+		if excess < utf8.RuneCountInString(pic.name) {
+			repl := gOpts.truncatechar + pic.name[excess+utf8.RuneCountInString(gOpts.truncatechar):]
+			s = strings.Replace(s, pic.name, repl, 1)
+		} else {
+			// if still too long, truncate entire string from the left
+			s = gOpts.truncatechar + s[excess+utf8.RuneCountInString(gOpts.truncatechar):]
+		}
+	}
+
+	free := max(cols-(utf8.RuneCountInString(s)-gaps*2), 0)
+	gapSize, rem := 0, 0
+	if gaps > 0 {
+		gapSize = free / gaps
+		rem = free % gaps
+	}
+
+	parts := strings.Split(s, "%=")
+	var b strings.Builder
+	b.WriteString(parts[0])
+	for i, p := range parts[1:] {
+		spaces := gapSize
+		if i < rem {
+			spaces++
+		}
+		b.WriteString(strings.Repeat(" ", spaces))
+		b.WriteString(p)
+	}
 
 	moveCursor(rows, 1)
 	clearLine()
-	fmt.Print(left)
-	moveCursor(rows, cols-len(right)+1)
-	fmt.Print(right)
+	printAt(rows, 1, b.String())
 }
