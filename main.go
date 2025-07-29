@@ -46,6 +46,7 @@ navigation:
   h,k   move backward
   g     go to first image
   G     go to last image
+  ?     help
   q     quit
 `
 		// Checking for `h` manually instead of adding it as a flag
@@ -223,6 +224,20 @@ func run() {
 			curr = 0
 		case 'G':
 			curr = len(pics) - 1
+		case '?':
+			// hacky solution, works for now
+			term.Restore(int(os.Stdin.Fd()), oldState)
+			clear()
+			gHelp = true
+			flag.Usage()
+			fmt.Print("\n\nPress ENTER to continue")
+			bufio.NewReader(os.Stdin).ReadString('\n')
+			clear()
+			oldState, err = term.MakeRaw(int(os.Stdin.Fd()))
+			if err != nil {
+				os.Exit(1)
+			}
+			last -= 1
 		}
 	}
 }
