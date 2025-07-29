@@ -139,10 +139,16 @@ func run() {
 	curr := 0
 	last := -1
 
-	for _, path := range flag.Args() {
-		pic, _ := newPicture(path)
-		if pic != nil {
-			pics = append(pics, pic)
+	for _, pattern := range flag.Args() {
+		matches, _ := filepath.Glob(pattern)
+		if len(matches) == 0 {
+			matches = []string{pattern}
+		}
+		for _, path := range matches {
+			pic, _ := newPicture(path)
+			if pic != nil {
+				pics = append(pics, pic)
+			}
 		}
 	}
 	if len(pics) == 0 {
