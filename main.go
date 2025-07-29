@@ -40,6 +40,14 @@ positional arguments:
 
 options:
 `
+		binds := `
+navigation:
+  l,j   move forward
+  h,k   move backward
+  g     go to first image
+  G     go to last image
+  q     quit
+`
 		// Checking for `h` manually instead of adding it as a flag
 		// prevents usage from showing two separate `help` entries,
 		// as the flag package doesn't link related flags together.
@@ -48,6 +56,7 @@ options:
 			flag.CommandLine.SetOutput(os.Stdout)
 			fmt.Fprint(flag.CommandLine.Output(), usage+detailed)
 			flag.PrintDefaults()
+			fmt.Fprint(flag.CommandLine.Output(), binds)
 		} else {
 			// When triggered by an error, print compact version to stderr
 			fmt.Fprint(flag.CommandLine.Output(), usage)
