@@ -14,6 +14,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"unicode"
 	"unicode/utf8"
 
 	"golang.org/x/term"
@@ -273,6 +274,25 @@ func prev(idx, n int) int {
 	return max(0, idx-1)
 }
 
+func runeWidth(r rune) int {
+	if unicode.Is(unicode.Mn, r) {
+		return 0
+	}
+	// Emoji
+	if utf8.RuneLen(r) == 4 {
+		return 2
+	}
+	return 1
+}
+
+func displayWidth(s string) int {
+	w := 0
+	for _, r := range s {
+		w += runeWidth(r)
+	}
+	return w
+}
+
 func printStatus(pic *picture, idx, total int) {
 	if gOpts.statusline == "" {
 		return
@@ -297,19 +317,20 @@ func printStatus(pic *picture, idx, total int) {
 	}
 
 	gaps := strings.Count(gOpts.statusline, "%=")
-	excess := (utf8.RuneCountInString(s) - (gaps)*2) - cols // account for %=
+	excess := (displayWidth(s) - (gaps)*2) - cols // account for %=
 	if excess > 0 {
 		// try truncating filename if possible
-		if excess < utf8.RuneCountInString(pic.name) {
-			repl := gOpts.truncatechar + pic.name[excess+utf8.RuneCountInString(gOpts.truncatechar):]
+		if excess < displayWidth(pic.name) {
+			// use runes for slicing to not mess up mutli-byte chars
+			repl := gOpts.truncatechar + string([]rune(pic.name)[excess+displayWidth(gOpts.truncatechar):])
 			s = strings.Replace(s, pic.name, repl, 1)
 		} else {
 			// if still too long, truncate entire string from the left
-			s = gOpts.truncatechar + s[excess+utf8.RuneCountInString(gOpts.truncatechar):]
+			s = gOpts.truncatechar + string([]rune(s)[excess+displayWidth(gOpts.truncatechar):])
 		}
 	}
 
-	free := max(cols-(utf8.RuneCountInString(s)-gaps*2), 0)
+	free := max(cols-(displayWidth(s)-gaps*2), 0)
 	gapSize, rem := 0, 0
 	if gaps > 0 {
 		gapSize = free / gaps
