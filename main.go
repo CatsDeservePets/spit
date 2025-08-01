@@ -26,47 +26,41 @@ var (
 	gPrintDefault = false
 )
 
-func main() {
-	flag.StringVar(&gConfigPath, "config", getConfigDir(), "specify the `path` to the configuration file")
-	flag.BoolVar(&gHelp, "help", false, "show this help message and exit")
-	flag.BoolVar(&gPrintDefault, "print-default", false, "print the default configuration to stdout and exit")
-	flag.Usage = func() {
-		usage := fmt.Sprintf("usage: %s [options] file [file ...]\n", os.Args[0])
-		detailed := `
-spit - Show Pictures in Terminal
+var helpMessage = fmt.Sprintf(`
+spit - Show Pictures In Terminal
 
 positional arguments:
-  file
-        image(s) to display
+  file            image(s) to display
 
 options:
-`
-		binds := `
+  -h, -help       show this help message and exit
+  -config path    specify the path to the configuration file (default: %s)
+  -print-default  print the default configuration to stdout and exit
+
 navigation:
-  l,j   move forward
-  h,k   move backward
-  g     go to first image
-  G     go to last image
-  ?     help
-  q     quit
-`
-		// Checking for `h` manually instead of adding it as a flag
-		// prevents usage from showing two separate `help` entries,
-		// as the flag package doesn't link related flags together.
-		if gHelp || slices.Contains(os.Args[1:], "-h") {
-			// When user-initiated, print detailed usage message to stdout
-			flag.CommandLine.SetOutput(os.Stdout)
-			fmt.Fprint(flag.CommandLine.Output(), usage+detailed)
-			flag.PrintDefaults()
-			fmt.Fprint(flag.CommandLine.Output(), binds)
-		} else {
-			// When triggered by an error, print compact version to stderr
-			fmt.Fprint(flag.CommandLine.Output(), usage)
-		}
+  l, j            move forward
+  h, k            move backward
+  g               go to first image
+  G               go to last image
+  ?               help
+  q               quit
+`, getConfigDir())
+
+func main() {
+	flag.StringVar(&gConfigPath, "config", getConfigDir(), "")
+	flag.BoolVar(&gHelp, "h", false, "")
+	flag.BoolVar(&gHelp, "help", false, "")
+	flag.BoolVar(&gPrintDefault, "print-default", false, "")
+	flag.Usage = func() {
+		// When triggered by an error, print compact version to stderr.
+		fmt.Fprintf(flag.CommandLine.Output(), "usage: %s [options] file [file ...]\n", os.Args[0])
 	}
 	flag.Parse()
 	if gHelp {
+		// When user-initiated, print detailed usage message to stdout.
+		flag.CommandLine.SetOutput(os.Stdout)
 		flag.Usage()
+		fmt.Fprint(os.Stdout, helpMessage)
 		os.Exit(0)
 	}
 	if gPrintDefault {
@@ -153,7 +147,7 @@ func run() {
 		}
 	}
 	if len(pics) == 0 {
-		fmt.Fprintf(flag.CommandLine.Output(), "%s: error: no allowed files found\n", os.Args[0])
+		fmt.Fprintf(os.Stderr, "%s: error: no allowed files found\n", os.Args[0])
 		os.Exit(1)
 	}
 
@@ -235,8 +229,8 @@ func run() {
 			// hacky solution, works for now
 			term.Restore(int(os.Stdin.Fd()), oldState)
 			clear()
-			gHelp = true
 			flag.Usage()
+			fmt.Print(helpMessage)
 			fmt.Print("\n\nPress ENTER to continue")
 			bufio.NewReader(os.Stdin).ReadString('\n')
 			clear()
