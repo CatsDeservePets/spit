@@ -64,11 +64,14 @@ func loadConfig(path string) error {
 			continue
 		}
 		key = strings.TrimSpace(key)
-		val = strings.Trim(strings.TrimSpace(val), `"`)
+		val = strings.TrimSpace(val)
+		if tmp, err := strconv.Unquote(val); err == nil {
+			val = tmp
+		}
 
 		switch key {
 		case "cleaner":
-			gOpts.cleaner = strings.TrimSpace(val)
+			gOpts.cleaner = val
 		case "extensions":
 			items := strings.Split(val, ",")
 			var exts []string
@@ -79,9 +82,9 @@ func loadConfig(path string) error {
 			}
 			gOpts.extensions = exts
 		case "previewer":
-			gOpts.previewer = strings.TrimSpace(val)
+			gOpts.previewer = val
 		case "statusline":
-			gOpts.statusline = strings.TrimSpace(val)
+			gOpts.statusline = val
 		case "title":
 			b, err := strconv.ParseBool(val)
 			if err != nil {
@@ -89,7 +92,7 @@ func loadConfig(path string) error {
 			}
 			gOpts.title = b
 		case "truncatechar":
-			gOpts.truncatechar = strings.TrimSpace(val)
+			gOpts.truncatechar = val
 		case "wrapscroll":
 			b, err := strconv.ParseBool(val)
 			if err != nil {

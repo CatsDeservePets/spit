@@ -131,9 +131,6 @@ func newPicture(path string) (*picture, error) {
 
 func run() {
 	pics := make([]*picture, 0)
-	curr := 0
-	last := -1
-
 	for _, pattern := range flag.Args() {
 		matches, _ := filepath.Glob(pattern)
 		if len(matches) == 0 {
@@ -146,7 +143,8 @@ func run() {
 			}
 		}
 	}
-	if len(pics) == 0 {
+	total := len(pics)
+	if total == 0 {
 		fmt.Fprintf(os.Stderr, "%s: error: no allowed files found\n", os.Args[0])
 		os.Exit(1)
 	}
@@ -163,6 +161,7 @@ func run() {
 	defer showCursor()
 
 	reader := bufio.NewReader(os.Stdin)
+	curr, last := 0, -1
 	for {
 		if last != curr {
 			last = curr
@@ -174,7 +173,6 @@ func run() {
 			if err != nil {
 				panic(err)
 			}
-
 			path := pics[curr].path
 
 			generateCmd := func(s string) (string, []string) {
@@ -208,7 +206,7 @@ func run() {
 				fmt.Fprintln(os.Stderr, "previewing image:", err)
 				os.Exit(1)
 			}
-			printStatus(pics[curr], curr+1, len(pics))
+			printStatus(pics[curr], curr+1, total)
 		}
 		b, err := reader.ReadByte()
 		if err != nil {
@@ -218,13 +216,13 @@ func run() {
 		case 'q':
 			return
 		case 'l', 'j':
-			curr = next(curr, len(pics))
+			curr = next(curr, total)
 		case 'h', 'k':
-			curr = prev(curr, len(pics))
+			curr = prev(curr, total)
 		case 'g':
 			curr = 0
 		case 'G':
-			curr = len(pics) - 1
+			curr = total - 1
 		case '?':
 			// hacky solution, works for now
 			term.Restore(int(os.Stdin.Fd()), oldState)
@@ -238,7 +236,7 @@ func run() {
 			if err != nil {
 				os.Exit(1)
 			}
-			last -= 1
+			last--
 		}
 	}
 }
