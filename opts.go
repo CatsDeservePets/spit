@@ -11,6 +11,7 @@ import (
 
 type options struct {
 	cleaner      string
+	errorfmt     string
 	extensions   []string
 	previewer    string
 	statusline   string
@@ -24,6 +25,7 @@ var gOpts options
 func init() {
 	gOpts = options{
 		cleaner:      "",
+		errorfmt:     "\033[7;31;47m",
 		extensions:   []string{".gif", ".heic", ".jpg", ".jpeg", ".png", ".tiff", ".webp"},
 		previewer:    "kitten icat --clear --stdin=no --transfer-mode=memory --place %cx%r@0x0 --scale-up=yes %f",
 		statusline:   "%f %= %wx%h  %s  %i/%t",
@@ -72,6 +74,8 @@ func loadConfig(path string) error {
 		switch key {
 		case "cleaner":
 			gOpts.cleaner = val
+		case "errorfmt":
+			gOpts.errorfmt = val
 		case "extensions":
 			items := strings.Split(val, ",")
 			var exts []string

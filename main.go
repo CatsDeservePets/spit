@@ -198,13 +198,13 @@ func run() {
 			}
 
 			if err := execCmd(generateCmd(gOpts.cleaner)); err != nil {
-				fmt.Fprintln(os.Stderr, "clearing image:", err)
-				os.Exit(1)
+				showError("Error clearing screen", rows)
+				continue
 			}
 			moveCursor(1, 1)
 			if err := execCmd(generateCmd(gOpts.previewer)); err != nil {
-				fmt.Fprintln(os.Stderr, "previewing image:", err)
-				os.Exit(1)
+				showError(fmt.Sprintf("Error displaying %q", path), rows)
+				continue
 			}
 			printStatus(pics[curr], curr+1, total)
 		}
@@ -344,4 +344,9 @@ func printStatus(pic *picture, idx, total int) {
 	moveCursor(rows, 1)
 	clearLine()
 	printAt(rows, 1, b.String())
+}
+
+func showError(s string, line int) {
+	reset := "\033[0m"
+	printAt(line, 1, fmt.Sprintf("%s%s%s", gOpts.errorfmt, s, reset))
 }
