@@ -64,7 +64,7 @@ func main() {
 		os.Exit(0)
 	}
 	if gPrintDefault {
-		// TODO
+		fmt.Fprintln(os.Stdout, gOpts)
 		os.Exit(0)
 	}
 	if flag.NArg() < 1 {
