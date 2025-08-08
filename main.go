@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"bytes"
 	"flag"
 	"fmt"
 	"image"
@@ -245,11 +246,16 @@ func execCmd(name string, args []string) error {
 	if strings.TrimSpace(name) == "" {
 		return nil
 	}
+	var out, errb bytes.Buffer
 	cmd := exec.Command(name, args...)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-
-	return cmd.Run()
+	cmd.Stdout = &out
+	cmd.Stderr = &errb
+	// Avoid showing error messages that cannot be cleared
+	if err := cmd.Run(); err != nil || errb.Len() > 0 {
+		return fmt.Errorf("failed")
+	}
+	_, err := os.Stdout.Write(out.Bytes())
+	return err
 }
 
 func next(idx, n int) int {
