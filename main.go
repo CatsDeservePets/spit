@@ -97,7 +97,7 @@ func newPicture(path string) (*picture, error) {
 	if err != nil {
 		return nil, fmt.Errorf("abs: %w", err)
 	}
-	if !slices.Contains(gOpts.extensions, filepath.Ext(absPath)) {
+	if !slices.Contains(gOpts.extensions, strings.ToLower(filepath.Ext(absPath))) {
 		return nil, fmt.Errorf("not a supported file: %s", path)
 	}
 
