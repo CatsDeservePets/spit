@@ -1,4 +1,4 @@
-module spit
+module github.com/CatsDeservePets/spit
 
 go 1.24.5
 
