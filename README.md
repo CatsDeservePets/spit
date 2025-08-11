@@ -4,6 +4,13 @@
  \
  \
 <img src="https://github.com/user-attachments/assets/cf1e4eeb-912a-451b-b176-0361cf5ae62e" width="50%" height="50%"/>
+
+## Installation
+
+```shell
+go install github.com/CatsDeservePets/spit@latest
+```
+
 ## Usage
 
 ```
@@ -54,8 +61,8 @@ cleaner="echo -e '\033[2J\033[H'"
 ```
 
 > [!NOTE]
-> Support varies by terminal, tool, and image protocol. You will probably need to tweak flags (size, clearing, placement, transfer mode).\
-> Common transfer modes: memory (fast, local, higher RAM, not for SSH), stream (slower, lighter, works over SSH), detect (auto).\
+> Protocol support varies by terminal. [Yazi's docs](https://github.com/sxyazi/yazi?tab=readme-ov-file#documentation) have a nice list of different terminals and their supported protocols.\
+> Tools like `chaf` or `viu` can behave differently across terminals. Be prepared to tweak flags and try out different things to make it all work.\
 > Using a terminal multiplexer like `Tmux` can also cause issues with some tools.
 
 
