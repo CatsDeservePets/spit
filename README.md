@@ -14,12 +14,12 @@ go install github.com/CatsDeservePets/spit@latest
 ## Usage
 
 ```
-usage: spit [options] file [file ...]
+usage: spit [options] [file ...]
 
 spit - Show Pictures In Terminal
 
 positional arguments:
-  file            image(s) to display
+  file            image(s) to display; defaults to all in the current directory
 
 options:
   -h, -help       show this help message and exit

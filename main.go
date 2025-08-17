@@ -31,7 +31,7 @@ var helpMessage = fmt.Sprintf(`
 spit - Show Pictures In Terminal
 
 positional arguments:
-  file            image(s) to display
+  file            image(s) to display; defaults to all in the current directory
 
 options:
   -h, -help       show this help message and exit
@@ -54,7 +54,7 @@ func main() {
 	flag.BoolVar(&gPrintDefault, "print-default", false, "")
 	flag.Usage = func() {
 		// When triggered by an error, print compact version to stderr.
-		fmt.Fprintf(flag.CommandLine.Output(), "usage: %s [options] file [file ...]\n", os.Args[0])
+		fmt.Fprintf(flag.CommandLine.Output(), "usage: %s [options] [file ...]\n", os.Args[0])
 	}
 	flag.Parse()
 	if gHelp {
@@ -68,12 +68,6 @@ func main() {
 		fmt.Fprintln(os.Stdout, gOpts)
 		os.Exit(0)
 	}
-	if flag.NArg() < 1 {
-		fmt.Fprintln(os.Stderr, "the following arguments are required: file")
-		flag.Usage()
-		os.Exit(2)
-	}
-
 	if gConfigPath != "" {
 		if err := loadConfig(gConfigPath); err != nil {
 			fmt.Fprintln(os.Stderr, "loading config:", err)
@@ -132,7 +126,11 @@ func newPicture(path string) (*picture, error) {
 
 func run() {
 	pics := make([]*picture, 0)
-	for _, pattern := range flag.Args() {
+	args := flag.Args()
+	if len(args) < 1 {
+		args = append(args, "*")
+	}
+	for _, pattern := range args {
 		matches, _ := filepath.Glob(pattern)
 		if len(matches) == 0 {
 			matches = []string{pattern}
