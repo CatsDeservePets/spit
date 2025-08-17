@@ -62,7 +62,7 @@ cleaner="echo -e '\033[2J\033[H'"
 
 > [!NOTE]
 > Protocol support varies by terminal. [Yazi's docs](https://github.com/sxyazi/yazi?tab=readme-ov-file#documentation) have a nice list of different terminals and their supported protocols.\
-> Tools like `chaf` or `viu` can behave differently across terminals. Be prepared to tweak flags and try out different things to make it all work.\
+> Tools like `chafa` or `viu` can behave differently across terminals. Be prepared to tweak flags and try out different things to make it all work.\
 > Using a terminal multiplexer like `Tmux` can also cause issues with some tools.
 
 
