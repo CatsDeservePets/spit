@@ -31,7 +31,7 @@ var helpMessage = fmt.Sprintf(`
 spit - Show Pictures In Terminal
 
 positional arguments:
-  file            image(s) to display; defaults to all in the current directory
+  picture         image(s) to display; defaults to all in the current directory
 
 options:
   -h, -help       show this help message and exit
@@ -54,7 +54,7 @@ func main() {
 	flag.BoolVar(&gPrintDefault, "print-default", false, "")
 	flag.Usage = func() {
 		// When triggered by an error, print compact version to stderr.
-		fmt.Fprintf(flag.CommandLine.Output(), "usage: %s [options] [file ...]\n", os.Args[0])
+		fmt.Fprintf(flag.CommandLine.Output(), "usage: %s [options] [picture ...]\n", os.Args[0])
 	}
 	flag.Parse()
 	if gHelp {
