@@ -47,6 +47,7 @@ func (o options) String() string {
 		case reflect.Slice:
 			parts := make([]string, val.Len())
 			for j := range parts {
+				// remove dots from extensions
 				parts[j] = strings.TrimPrefix(val.Index(j).String(), ".")
 			}
 			b.WriteString(strconv.Quote(strings.Join(parts, ",")))

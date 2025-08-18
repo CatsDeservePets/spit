@@ -128,6 +128,7 @@ func run() {
 	pics := make([]*picture, 0)
 	args := flag.Args()
 	if len(args) < 1 {
+		// use images in cwd as fallback
 		args = append(args, "*")
 	}
 	for _, pattern := range args {
@@ -248,7 +249,7 @@ func execCmd(name string, args []string) error {
 	cmd := exec.Command(name, args...)
 	cmd.Stdout = &out
 	cmd.Stderr = &errb
-	// Avoid showing error messages that cannot be cleared
+	// Avoid showing error messages that cannot be cleared.
 	if err := cmd.Run(); err != nil || errb.Len() > 0 {
 		return fmt.Errorf("failed")
 	}
