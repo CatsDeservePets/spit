@@ -24,6 +24,10 @@ import (
 	"golang.org/x/term"
 )
 
+var supportedExts = []string{
+	".bmp", ".gif", ".jpg", ".jpeg", ".png", ".tif", ".tiff", ".webp",
+}
+
 var (
 	gConfigPath   = ""
 	gHelp         = false
@@ -95,7 +99,7 @@ func newPicture(path string) (*picture, error) {
 		return nil, fmt.Errorf("abs: %w", err)
 	}
 	if !slices.Contains(gOpts.extensions, strings.ToLower(filepath.Ext(absPath))) {
-		return nil, fmt.Errorf("not a supported file: %s", path)
+		return nil, fmt.Errorf("file extension not allowed: %s", path)
 	}
 
 	f, err := os.Open(path)
@@ -113,8 +117,14 @@ func newPicture(path string) (*picture, error) {
 	}
 
 	cfg, format, err := image.DecodeConfig(f)
-	if err != nil {
-		err = fmt.Errorf("decode: %s", err)
+	// An unsupported format may still be a valid image.
+	if slices.Contains(supportedExts, strings.ToLower(filepath.Ext(absPath))) {
+		if err != nil {
+			return nil, fmt.Errorf("decode: %s", err)
+		}
+		if cfg.Width == 0 || cfg.Height == 0 {
+			return nil, fmt.Errorf("%s, invalid resolution: %dx%d", path, cfg.Width, cfg.Height)
+		}
 	}
 
 	return &picture{
