@@ -18,6 +18,9 @@ import (
 	"unicode"
 	"unicode/utf8"
 
+	_ "golang.org/x/image/bmp"
+	_ "golang.org/x/image/tiff"
+	_ "golang.org/x/image/webp"
 	"golang.org/x/term"
 )
 

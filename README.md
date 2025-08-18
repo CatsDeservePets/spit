@@ -89,7 +89,7 @@ cleaner=""
 errorfmt="\x1b[7;31;47m"
 
 # Enable 'spit' on the following image extensions
-extensions="gif,heic,jpg,jpeg,png,tiff,webp"
+extensions="bmp,gif,jpg,jpeg,png,tif,tiff,webp"
 
 # Command used to preview images.
 # Following expansions are available:
