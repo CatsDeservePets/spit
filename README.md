@@ -19,20 +19,20 @@ usage: spit [options] [picture ...]
 spit - Show Pictures In Terminal
 
 positional arguments:
-  picture         image(s) to display; defaults to all in the current directory
+  picture    images to display (default: all in current directory)
 
 options:
-  -h, -help       show this help message and exit
-  -config path    specify the path to the configuration file
-  -print-default  print the default configuration to stdout and exit
+  -h, -help  show this help message and exit
+  -p         print default configuration and exit
+  -c FILE    use this configuration file (default: $XDG_CONFIG_HOME/spit/spit.conf)
 
 navigation:
-  l, j            move forward
-  h, k            move backward
-  g               go to first image
-  G               go to last image
-  ?               help
-  q               quit
+  l, j       move forward
+  h, k       move backward
+  g          go to first image
+  G          go to last image
+  ?          help
+  q          quit
 ```
 
 ## Configuration
