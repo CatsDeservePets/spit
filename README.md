@@ -25,6 +25,7 @@ options:
   -h, -help  show this help message and exit
   -p         print default configuration and exit
   -c FILE    use this configuration file (default: $XDG_CONFIG_HOME/spit/spit.conf)
+  -n VALUE   set initial image using 1-based index or filename (default: 1)
 
 navigation:
   l, j       move forward

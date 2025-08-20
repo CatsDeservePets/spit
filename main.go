@@ -32,6 +32,8 @@ var (
 	gConfigPath   = ""
 	gHelp         = false
 	gPrintDefault = false
+	gStartIdx     = -1
+	gStartPath    = ""
 )
 
 var helpMessage = fmt.Sprintf(`
@@ -44,6 +46,7 @@ options:
   -h, -help  show this help message and exit
   -p         print default configuration and exit
   -c FILE    use this configuration file (default: %s)
+  -n VALUE   set initial image using 1-based index or filename (default: 1)
 
 navigation:
   l, j       move forward
@@ -59,9 +62,19 @@ func main() {
 	flag.BoolVar(&gHelp, "help", false, "")
 	flag.BoolVar(&gPrintDefault, "p", false, "")
 	flag.StringVar(&gConfigPath, "c", getConfigDir(), "")
+	flag.Func("n", "", func(s string) error {
+		if n, err := strconv.Atoi(s); err == nil {
+			if n < 1 {
+				return fmt.Errorf("must be >= 1")
+			}
+			gStartIdx = n
+		}
+		gStartPath = s
+		return nil
+	})
 	flag.Usage = func() {
 		// When triggered by an error, print compact version to stderr.
-		fmt.Fprintf(flag.CommandLine.Output(), "usage: %s [-h] [-p] [-c FILE] [picture ...]\n", os.Args[0])
+		fmt.Fprintf(flag.CommandLine.Output(), "usage: %s [-h] [-p] [-c FILE] [-n VALUE] [picture ...]\n", os.Args[0])
 	}
 	flag.Parse()
 	if gHelp {
@@ -161,6 +174,11 @@ func run() {
 		fmt.Fprintf(os.Stderr, "%s: error: no allowed files found\n", os.Args[0])
 		os.Exit(1)
 	}
+	curr, err := startIndex(pics)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "%s: error: %s\n", os.Args[0], err)
+		os.Exit(1)
+	}
 
 	showAlternateScreen()
 	hideCursor()
@@ -174,7 +192,7 @@ func run() {
 	defer showCursor()
 
 	reader := bufio.NewReader(os.Stdin)
-	curr, last := 0, -1
+	last := -1
 	for {
 		if last != curr {
 			last = curr
@@ -367,4 +385,27 @@ func printStatus(pic *picture, idx, total int) {
 func showError(s string, line int) {
 	reset := "\033[0m"
 	printAt(line, 1, fmt.Sprintf("%s%s%s", gOpts.errorfmt, s, reset))
+}
+
+func startIndex(pics []*picture) (int, error) {
+	if gStartIdx >= 1 {
+		gStartIdx = min(gStartIdx, len(pics)) - 1
+		return gStartIdx, nil
+	}
+	if gStartPath == "" {
+		return 0, nil
+	}
+	path := gStartPath
+	if !filepath.IsAbs(path) {
+		if abs, err := filepath.Abs(path); err == nil {
+			path = abs
+		}
+	}
+	base := filepath.Base(path)
+	for i, p := range pics {
+		if p.path == path || p.name == base {
+			return i, nil
+		}
+	}
+	return 0, fmt.Errorf("invalid start image")
 }
