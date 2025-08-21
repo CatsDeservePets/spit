@@ -14,7 +14,7 @@ go install github.com/CatsDeservePets/spit@latest
 ## Usage
 
 ```
-usage: spit [options] [picture ...]
+usage: spit [-h] [-p] [-c FILE] [-n VALUE] [picture ...]
 
 spit - Show Pictures In Terminal
 
