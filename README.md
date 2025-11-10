@@ -92,6 +92,9 @@ errorfmt="\x1b[7;31;47m"
 # Enable 'spit' on the following image extensions
 extensions="bmp,gif,jpg,jpeg,png,tif,tiff,webp"
 
+# Use human readable sizes
+humanreadable=false
+
 # Command used to preview images.
 # Following expansions are available:
 # %c terminal columns

@@ -9,6 +9,7 @@ import (
 	_ "image/gif"
 	_ "image/jpeg"
 	_ "image/png"
+	"math"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -330,12 +331,19 @@ func printStatus(pic *picture, idx, total int) {
 		panic(err)
 	}
 
+	var size string
+	if gOpts.humanreadable {
+		size = fmt.Sprintf("%5s", humanReadable(pic.size))
+	} else {
+		size = fmt.Sprintf("%dB", pic.size)
+	}
+
 	r := strings.NewReplacer(
 		"%%", "%",
 		"%f", pic.name,
 		"%h", strconv.Itoa(pic.height),
 		"%i", strconv.Itoa(idx),
-		"%s", fmt.Sprintf("%dB", pic.size),
+		"%s", size,
 		"%t", strconv.Itoa(total),
 		"%w", strconv.Itoa(pic.width),
 	)
@@ -380,6 +388,28 @@ func printStatus(pic *picture, idx, total int) {
 	moveCursor(rows, 1)
 	clearLine()
 	printAt(rows, 1, b.String())
+}
+
+func humanReadable(size int64) string {
+	if size < 1024 {
+		return fmt.Sprintf("%dB", size)
+	}
+
+	base := 1024.0
+	units := []string{"K", "M", "G", "T", "P"}
+	v := float64(size)
+
+	for _, u := range units {
+		v /= base
+		if v < 99.95 {
+			return fmt.Sprintf("%.1f%s", math.Round(v*10)/10, u)
+		}
+		if v < base-0.5 {
+			return fmt.Sprintf("%.0f%s", math.Round(v), u)
+		}
+	}
+
+	return "+999" + units[len(units)-1]
 }
 
 func showError(s string, line int) {
