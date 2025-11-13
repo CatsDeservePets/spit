@@ -136,7 +136,7 @@ func loadConfig(path string) error {
 		case "humanreadable":
 			b, err := strconv.ParseBool(val)
 			if err != nil {
-				return fmt.Errorf("invalid value for title: %w", err)
+				return fmt.Errorf("invalid value for humanreadable: %w", err)
 			}
 			gOpts.humanreadable = b
 		case "previewer":
