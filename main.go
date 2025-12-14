@@ -29,6 +29,8 @@ var supportedExts = []string{
 	".bmp", ".gif", ".jpg", ".jpeg", ".png", ".tif", ".tiff", ".webp",
 }
 
+var progName = strings.TrimSuffix(filepath.Base(os.Args[0]), ".exe")
+
 var (
 	gConfigPath   = ""
 	gHelp         = false
@@ -75,7 +77,7 @@ func main() {
 	})
 	flag.Usage = func() {
 		// When triggered by an error, print compact version to stderr.
-		fmt.Fprintf(flag.CommandLine.Output(), "usage: %s [-h] [-p] [-c FILE] [-n VALUE] [picture ...]\n", os.Args[0])
+		fmt.Fprintf(flag.CommandLine.Output(), "usage: %s [-h] [-p] [-c FILE] [-n VALUE] [picture ...]\n", progName)
 	}
 	flag.Parse()
 	if gHelp {
@@ -172,12 +174,12 @@ func run() {
 	}
 	total := len(pics)
 	if total == 0 {
-		fmt.Fprintf(os.Stderr, "%s: error: no allowed files found\n", os.Args[0])
+		fmt.Fprintf(os.Stderr, "%s: error: no allowed files found\n", progName)
 		os.Exit(1)
 	}
 	curr, err := startIndex(pics)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "%s: error: %s\n", os.Args[0], err)
+		fmt.Fprintf(os.Stderr, "%s: error: %s\n", progName, err)
 		os.Exit(1)
 	}
 
@@ -198,7 +200,7 @@ func run() {
 		if last != curr {
 			last = curr
 			if gOpts.title {
-				setTitle(fmt.Sprintf("%s - %s", os.Args[0], pics[curr].name))
+				setTitle(fmt.Sprintf("%s - %s", progName, pics[curr].name))
 			}
 
 			cols, rows, err := term.GetSize(int(os.Stdout.Fd()))
