@@ -14,26 +14,27 @@ go install github.com/CatsDeservePets/spit@latest
 ## Usage
 
 ```
-usage: spit [-h] [-p] [-c FILE] [-n VALUE] [picture ...]
+usage: spit [-h] [-V] [-p] [-c FILE] [-n VALUE] [picture ...]
 
 spit - Show Pictures In Terminal
 
 positional arguments:
-  picture    images to display (default: all in current directory)
+  picture       images to display (default: all in current directory)
 
 options:
-  -h, -help  show this help message and exit
-  -p         print default configuration and exit
-  -c FILE    use this configuration file (default: $XDG_CONFIG_HOME/spit/spit.conf)
-  -n VALUE   set initial image using 1-based index or filename (default: 1)
+  -h, -help     show this help message and exit
+  -V, -version  show program's version number and exit
+  -p            print default configuration and exit
+  -c FILE       use this configuration file (default: $XDG_CONFIG_HOME/spit/spit.conf)
+  -n VALUE      set initial image using 1-based index or filename (default: 1)
 
 navigation:
-  l, j       move forward
-  h, k       move backward
-  g          go to first image
-  G          go to last image
-  ?          help
-  q          quit
+  l, j          move forward
+  h, k          move backward
+  g             go to first image
+  G             go to last image
+  ?             help
+  q             quit
 ```
 
 ## Configuration

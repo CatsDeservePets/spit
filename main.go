@@ -13,6 +13,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime/debug"
 	"slices"
 	"strconv"
 	"strings"
@@ -34,6 +35,7 @@ var progName = strings.TrimSuffix(filepath.Base(os.Args[0]), ".exe")
 var (
 	gConfigPath   = ""
 	gHelp         = false
+	gVersion      = false
 	gPrintDefault = false
 	gStartIdx     = -1
 	gStartPath    = ""
@@ -43,26 +45,29 @@ var helpMessage = fmt.Sprintf(`
 spit - Show Pictures In Terminal
 
 positional arguments:
-  picture    images to display (default: all in current directory)
+  picture       images to display (default: all in current directory)
 
 options:
-  -h, -help  show this help message and exit
-  -p         print default configuration and exit
-  -c FILE    use this configuration file (default: %s)
-  -n VALUE   set initial image using 1-based index or filename (default: 1)
+  -h, -help     show this help message and exit
+  -V, -version  show program's version number and exit
+  -p            print default configuration and exit
+  -c FILE       use this configuration file (default: %s)
+  -n VALUE      set initial image using 1-based index or filename (default: 1)
 
 navigation:
-  l, j       move forward
-  h, k       move backward
-  g          go to first image
-  G          go to last image
-  ?          help
-  q          quit
+  l, j          move forward
+  h, k          move backward
+  g             go to first image
+  G             go to last image
+  ?             help
+  q             quit
 `, getConfigDir())
 
 func main() {
 	flag.BoolVar(&gHelp, "h", false, "")
 	flag.BoolVar(&gHelp, "help", false, "")
+	flag.BoolVar(&gVersion, "V", false, "")
+	flag.BoolVar(&gVersion, "version", false, "")
 	flag.BoolVar(&gPrintDefault, "p", false, "")
 	flag.StringVar(&gConfigPath, "c", getConfigDir(), "")
 	flag.Func("n", "", func(s string) error {
@@ -77,7 +82,7 @@ func main() {
 	})
 	flag.Usage = func() {
 		// When triggered by an error, print compact version to stderr.
-		fmt.Fprintf(flag.CommandLine.Output(), "usage: %s [-h] [-p] [-c FILE] [-n VALUE] [picture ...]\n", progName)
+		fmt.Fprintf(flag.CommandLine.Output(), "usage: %s [-h] [-V] [-p] [-c FILE] [-n VALUE] [picture ...]\n", progName)
 	}
 	flag.Parse()
 	if gHelp {
@@ -85,6 +90,10 @@ func main() {
 		flag.CommandLine.SetOutput(os.Stdout)
 		flag.Usage()
 		fmt.Fprint(os.Stdout, helpMessage)
+		os.Exit(0)
+	}
+	if gVersion {
+		fmt.Println(version())
 		os.Exit(0)
 	}
 	if gPrintDefault {
@@ -417,6 +426,14 @@ func humanReadable(size int64) string {
 func showError(s string, line int) {
 	reset := "\033[0m"
 	printAt(line, 1, fmt.Sprintf("%s%s%s", gOpts.errorfmt, s, reset))
+}
+
+func version() string {
+	bi, ok := debug.ReadBuildInfo()
+	if !ok {
+		return progName + " unknown"
+	}
+	return fmt.Sprintf("%s %s", progName, bi.Main.Version)
 }
 
 func startIndex(pics []*picture) (int, error) {
