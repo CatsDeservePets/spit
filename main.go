@@ -119,11 +119,7 @@ type picture struct {
 }
 
 func newPicture(path string) (*picture, error) {
-	absPath, err := filepath.Abs(path)
-	if err != nil {
-		return nil, fmt.Errorf("abs: %w", err)
-	}
-	if !slices.Contains(gOpts.extensions, strings.ToLower(filepath.Ext(absPath))) {
+	if !slices.Contains(gOpts.extensions, strings.ToLower(filepath.Ext(path))) {
 		return nil, fmt.Errorf("file extension not allowed: %s", path)
 	}
 
@@ -139,6 +135,11 @@ func newPicture(path string) (*picture, error) {
 	}
 	if info.IsDir() {
 		return nil, fmt.Errorf("not a file: %s", path)
+	}
+
+	absPath, err := filepath.Abs(path)
+	if err != nil {
+		return nil, fmt.Errorf("abs: %w", err)
 	}
 
 	cfg, format, err := image.DecodeConfig(f)
