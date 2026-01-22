@@ -273,7 +273,7 @@ func run() {
 			flag.Usage()
 			fmt.Print(helpMessage)
 			fmt.Print("\n\nPress ENTER to continue")
-			bufio.NewReader(os.Stdin).ReadString('\n')
+			bufio.NewReader(os.Stdin).ReadBytes('\n')
 			clear()
 			oldState, err = term.MakeRaw(int(os.Stdin.Fd()))
 			if err != nil {
