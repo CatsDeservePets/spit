@@ -118,11 +118,61 @@ type picture struct {
 	format        string
 }
 
-func newPicture(path string) (*picture, error) {
-	if !slices.Contains(gOpts.extensions, strings.ToLower(filepath.Ext(path))) {
-		return nil, fmt.Errorf("file extension not allowed: %s", path)
+func expandGlobs(args []string) []string {
+	// Use images in cwd by default.
+	if len(args) == 0 {
+		args = []string{"*"}
+	}
+	out := make([]string, 0, len(args))
+	for _, pattern := range args {
+		// Windows does not expand shell globs automatically,
+		// so we try to expand patterns ourselves.
+		if matches, _ := filepath.Glob(pattern); len(matches) > 0 {
+			out = append(out, matches...)
+		} else {
+			// Fall back to literal path.
+			out = append(out, pattern)
+		}
+	}
+	return out
+}
+
+func pathsFromArgs(args []string) []string {
+	paths := expandGlobs(args)
+	out := make([]string, 0, len(paths))
+
+	appendPath := func(p string) {
+		ext := strings.ToLower(filepath.Ext(p))
+		if slices.Contains(gOpts.extensions, ext) {
+			out = append(out, p)
+		}
 	}
 
+	for _, p := range paths {
+		// Only expand literal directory arguments, not glob matches.
+		if !strings.HasSuffix(p, string(os.PathSeparator)) {
+			appendPath(p)
+			continue
+		}
+		f, err := os.Open(p)
+		if err != nil {
+			continue
+		}
+		names, err := f.Readdirnames(-1)
+		f.Close()
+		if err != nil {
+			continue
+		}
+
+		for _, name := range names {
+			appendPath(filepath.Join(p, name))
+		}
+	}
+
+	return out
+}
+
+func newPicture(path string) (*picture, error) {
 	f, err := os.Open(path)
 	if err != nil {
 		return nil, fmt.Errorf("open: %s", err)
@@ -164,22 +214,13 @@ func newPicture(path string) (*picture, error) {
 }
 
 func run() {
-	pics := make([]*picture, 0)
-	args := flag.Args()
-	if len(args) < 1 {
-		// use images in cwd as fallback
-		args = append(args, "*")
-	}
-	for _, pattern := range args {
-		matches, _ := filepath.Glob(pattern)
-		if len(matches) == 0 {
-			matches = []string{pattern}
-		}
-		for _, path := range matches {
-			pic, _ := newPicture(path)
-			if pic != nil {
-				pics = append(pics, pic)
-			}
+	paths := pathsFromArgs(flag.Args())
+	pics := make([]*picture, 0, len(paths))
+
+	for _, p := range paths {
+		pic, _ := newPicture(p)
+		if pic != nil {
+			pics = append(pics, pic)
 		}
 	}
 	total := len(pics)
