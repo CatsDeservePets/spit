@@ -67,6 +67,7 @@ navigation:
 )
 
 func main() {
+	defaultConfigPath := getConfigDir()
 	flag.BoolVar(&gHelp, "h", false, "")
 	flag.BoolVar(&gHelp, "help", false, "")
 	flag.BoolVar(&gVersion, "V", false, "")
@@ -103,8 +104,10 @@ func main() {
 		fmt.Fprintln(os.Stdout, gOpts)
 		os.Exit(0)
 	}
-	if gConfigPath != "" {
-		if err := loadConfig(gConfigPath); err != nil {
+	if err := loadConfig(gConfigPath); err != nil {
+		// Don't force users to always have a config file (even though
+		// changes to `previewer` will most likely be required anyway).
+		if !os.IsNotExist(err) || gConfigPath != defaultConfigPath {
 			fmt.Fprintln(os.Stderr, "loading config:", err)
 			os.Exit(1)
 		}
