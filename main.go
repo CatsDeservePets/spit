@@ -41,7 +41,9 @@ var (
 	gStartPath    = ""
 )
 
-var helpMessage = fmt.Sprintf(`
+const (
+	usageLine   = "usage: %s [-h] [-V] [-p] [-c FILE] [-n VALUE] [path ...]\n"
+	helpMessage = `
 spit - Show Pictures In Terminal
 
 positional arguments:
@@ -61,7 +63,8 @@ navigation:
   G             go to last image
   ?             help
   q             quit
-`, getConfigDir())
+`
+)
 
 func main() {
 	flag.BoolVar(&gHelp, "h", false, "")
@@ -82,14 +85,14 @@ func main() {
 	})
 	flag.Usage = func() {
 		// When triggered by an error, print compact version to stderr.
-		fmt.Fprintf(flag.CommandLine.Output(), "usage: %s [-h] [-V] [-p] [-c FILE] [-n VALUE] [path ...]\n", progName)
+		fmt.Fprintf(flag.CommandLine.Output(), usageLine, progName)
 	}
 	flag.Parse()
 	if gHelp {
 		// When user-initiated, print detailed usage message to stdout.
 		flag.CommandLine.SetOutput(os.Stdout)
 		flag.Usage()
-		fmt.Fprint(os.Stdout, helpMessage)
+		fmt.Fprintf(os.Stdout, helpMessage, getConfigDir())
 		os.Exit(0)
 	}
 	if gVersion {
@@ -313,7 +316,7 @@ func run() {
 			term.Restore(int(os.Stdin.Fd()), oldState)
 			clear()
 			flag.Usage()
-			fmt.Print(helpMessage)
+			fmt.Printf(helpMessage, getConfigDir())
 			fmt.Print("\n\nPress ENTER to continue")
 			bufio.NewReader(os.Stdin).ReadBytes('\n')
 			clear()
