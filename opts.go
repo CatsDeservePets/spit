@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"fmt"
 	"os"
-	"path/filepath"
 	"reflect"
 	"strconv"
 	"strings"
@@ -80,19 +79,6 @@ func init() {
 	}
 }
 
-func getConfigDir() string {
-	dir := os.Getenv("XDG_CONFIG_HOME")
-	if dir == "" {
-		var err error
-		dir, err = os.UserConfigDir()
-		if err != nil {
-			fmt.Fprintln(os.Stderr, "determining config path:", err)
-			os.Exit(1)
-		}
-	}
-	return filepath.Join(dir, "spit", "spit.conf")
-}
-
 func loadConfig(path string) error {
 	f, err := os.Open(path)
 	if err != nil {
@@ -165,4 +151,23 @@ func loadConfig(path string) error {
 		}
 	}
 	return s.Err()
+}
+
+// configDir is like [os.UserConfigDir], but looks for $XDG_CONFIG_HOME on all
+// platforms rather than just Unix.
+//
+// If the location cannot be determined, configDir prints an error and exits.
+// Note: since it is used before flags are parsed, even the -c flag can't save you.
+// In that case, you're debugging your environment, not spit.
+func configDir() string {
+	dir := os.Getenv("XDG_CONFIG_HOME")
+	if dir == "" {
+		var err error
+		dir, err = os.UserConfigDir()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "%s: determining config dir: %s\n", progName, err)
+			os.Exit(1)
+		}
+	}
+	return dir
 }

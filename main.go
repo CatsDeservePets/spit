@@ -34,17 +34,18 @@ var knownFormats = []string{
 var progName = strings.TrimSuffix(filepath.Base(os.Args[0]), ".exe")
 
 var (
-	gConfigPath   = ""
-	gHelp         = false
-	gVersion      = false
-	gPrintDefault = false
-	gStartIdx     = -1
-	gStartPath    = ""
+	gDefaultConfigPath = filepath.Join(configDir(), "spit", "spit.conf")
+	gConfigPath        = ""
+	gHelp              = false
+	gVersion           = false
+	gPrintDefault      = false
+	gStartIdx          = -1
+	gStartPath         = ""
 )
 
-const (
+var (
 	usageLine   = "usage: %s [-h] [-V] [-p] [-c FILE] [-n VALUE] [path ...]\n"
-	helpMessage = `
+	helpMessage = fmt.Sprintf(`
 spit - Show Pictures In Terminal
 
 positional arguments:
@@ -64,17 +65,16 @@ navigation:
   G             go to last image
   ?             help
   q             quit
-`
+`, gDefaultConfigPath)
 )
 
 func main() {
-	defaultConfigPath := getConfigDir()
 	flag.BoolVar(&gHelp, "h", false, "")
 	flag.BoolVar(&gHelp, "help", false, "")
 	flag.BoolVar(&gVersion, "V", false, "")
 	flag.BoolVar(&gVersion, "version", false, "")
 	flag.BoolVar(&gPrintDefault, "p", false, "")
-	flag.StringVar(&gConfigPath, "c", getConfigDir(), "")
+	flag.StringVar(&gConfigPath, "c", gDefaultConfigPath, "")
 	flag.Func("n", "", func(s string) error {
 		if n, err := strconv.Atoi(s); err == nil {
 			if n < 1 {
@@ -94,7 +94,7 @@ func main() {
 		// When user-initiated, print detailed usage message to stdout.
 		flag.CommandLine.SetOutput(os.Stdout)
 		flag.Usage()
-		fmt.Fprintf(os.Stdout, helpMessage, getConfigDir())
+		fmt.Fprint(os.Stdout, helpMessage)
 		os.Exit(0)
 	}
 	if gVersion {
@@ -108,7 +108,7 @@ func main() {
 	if err := loadConfig(gConfigPath); err != nil {
 		// Don't force users to always have a config file (even though
 		// changes to `previewer` will most likely be required anyway).
-		if !os.IsNotExist(err) || gConfigPath != defaultConfigPath {
+		if !os.IsNotExist(err) || gConfigPath != gDefaultConfigPath {
 			fmt.Fprintf(os.Stderr, "%s: loading config: %s\n", progName, err)
 			os.Exit(1)
 		}
@@ -321,7 +321,7 @@ func run() {
 			term.Restore(int(os.Stdin.Fd()), oldState)
 			clear()
 			flag.Usage()
-			fmt.Printf(helpMessage, getConfigDir())
+			fmt.Print(helpMessage)
 			fmt.Print("\n\nPress ENTER to continue")
 			bufio.NewReader(os.Stdin).ReadBytes('\n')
 			clear()
