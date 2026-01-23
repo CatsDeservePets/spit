@@ -26,7 +26,8 @@ import (
 	"golang.org/x/term"
 )
 
-var supportedExts = []string{
+// knownFormats lists filename extensions we can validate via image.DecodeConfig.
+var knownFormats = []string{
 	".bmp", ".gif", ".jpg", ".jpeg", ".png", ".tif", ".tiff", ".webp",
 }
 
@@ -108,7 +109,7 @@ func main() {
 		// Don't force users to always have a config file (even though
 		// changes to `previewer` will most likely be required anyway).
 		if !os.IsNotExist(err) || gConfigPath != defaultConfigPath {
-			fmt.Fprintln(os.Stderr, "loading config:", err)
+			fmt.Fprintf(os.Stderr, "%s: loading config: %s\n", progName, err)
 			os.Exit(1)
 		}
 	}
@@ -152,6 +153,7 @@ func pathsFromArgs(args []string) []string {
 		if slices.Contains(gOpts.extensions, ext) {
 			out = append(out, p)
 		}
+		// TODO: Log skipped images
 	}
 
 	for _, p := range paths {
@@ -165,10 +167,10 @@ func pathsFromArgs(args []string) []string {
 			continue
 		}
 		names, err := f.Readdirnames(-1)
-		f.Close()
 		if err != nil {
 			continue
 		}
+		defer f.Close()
 
 		for _, name := range names {
 			appendPath(filepath.Join(p, name))
@@ -189,8 +191,8 @@ func newPicture(path string) (*picture, error) {
 	if err != nil {
 		return nil, fmt.Errorf("stat: %s", err)
 	}
-	if info.IsDir() {
-		return nil, fmt.Errorf("not a file: %s", path)
+	if !info.Mode().IsRegular() {
+		return nil, fmt.Errorf("not a regular file")
 	}
 
 	absPath, err := filepath.Abs(path)
@@ -199,14 +201,12 @@ func newPicture(path string) (*picture, error) {
 	}
 
 	cfg, format, err := image.DecodeConfig(f)
-	// An unsupported format may still be a valid image.
-	if slices.Contains(supportedExts, strings.ToLower(filepath.Ext(absPath))) {
-		if err != nil {
-			return nil, fmt.Errorf("decode: %s", err)
+	if err != nil {
+		// DecodeConfig errors are only meaningful for known formats.
+		if slices.Contains(knownFormats, strings.ToLower(filepath.Ext(absPath))) {
+			return nil, err
 		}
-		if cfg.Width == 0 || cfg.Height == 0 {
-			return nil, fmt.Errorf("%s, invalid resolution: %dx%d", path, cfg.Width, cfg.Height)
-		}
+		// TODO: Log skipped validation
 	}
 
 	return &picture{
@@ -216,7 +216,7 @@ func newPicture(path string) (*picture, error) {
 		width:  cfg.Width,
 		height: cfg.Height,
 		format: format,
-	}, err
+	}, nil
 }
 
 func run() {
@@ -224,19 +224,21 @@ func run() {
 	pics := make([]*picture, 0, len(paths))
 
 	for _, p := range paths {
-		pic, _ := newPicture(p)
-		if pic != nil {
+		pic, err := newPicture(p)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "%s: %s\n", p, err)
+		} else if pic != nil {
 			pics = append(pics, pic)
 		}
 	}
 	total := len(pics)
 	if total == 0 {
-		fmt.Fprintf(os.Stderr, "%s: error: no allowed files found\n", progName)
+		fmt.Fprintf(os.Stderr, "%s: no allowed files found\n", progName)
 		os.Exit(1)
 	}
 	curr, err := startIndex(pics)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "%s: error: %s\n", progName, err)
+		fmt.Fprintf(os.Stderr, "%s: %s\n", progName, err)
 		os.Exit(1)
 	}
 
