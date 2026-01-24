@@ -31,17 +31,19 @@ var knownFormats = []string{
 	".bmp", ".gif", ".jpg", ".jpeg", ".png", ".tif", ".tiff", ".webp",
 }
 
-var progName = strings.TrimSuffix(filepath.Base(os.Args[0]), ".exe")
-
 var (
-	gDefaultConfigPath = filepath.Join(configDir(), "spit", "spit.conf")
-	gConfigPath        = ""
-	gHelp              = false
-	gVersion           = false
-	gPrintDefault      = false
-	gStartIdx          = -1
-	gStartPath         = ""
+	progName          = strings.TrimSuffix(filepath.Base(os.Args[0]), ".exe")
+	defaultConfigPath = filepath.Join(configDir(), "spit", "spit.conf")
 )
+
+type cli struct {
+	configPath   string
+	help         bool
+	version      bool
+	printDefault bool
+	startIdx     int
+	startPath    string
+}
 
 var (
 	usageLine   = fmt.Sprintf("usage: %s [-h] [-V] [-p] [-c FILE] [-n VALUE] [path ...]\n", progName)
@@ -65,24 +67,26 @@ navigation:
   G             go to last image
   ?             help
   q             quit
-`, gDefaultConfigPath)
+`, defaultConfigPath)
 )
 
 func main() {
-	flag.BoolVar(&gHelp, "h", false, "")
-	flag.BoolVar(&gHelp, "help", false, "")
-	flag.BoolVar(&gVersion, "V", false, "")
-	flag.BoolVar(&gVersion, "version", false, "")
-	flag.BoolVar(&gPrintDefault, "p", false, "")
-	flag.StringVar(&gConfigPath, "c", gDefaultConfigPath, "")
+	var c cli
+
+	flag.BoolVar(&c.help, "h", false, "")
+	flag.BoolVar(&c.help, "help", false, "")
+	flag.BoolVar(&c.version, "V", false, "")
+	flag.BoolVar(&c.version, "version", false, "")
+	flag.BoolVar(&c.printDefault, "p", false, "")
+	flag.StringVar(&c.configPath, "c", defaultConfigPath, "")
 	flag.Func("n", "", func(s string) error {
 		if n, err := strconv.Atoi(s); err == nil {
 			if n < 1 {
 				return fmt.Errorf("must be >= 1")
 			}
-			gStartIdx = n
+			c.startIdx = n
 		}
-		gStartPath = s
+		c.startPath = s
 		return nil
 	})
 	flag.Usage = func() {
@@ -90,31 +94,31 @@ func main() {
 		fmt.Fprint(flag.CommandLine.Output(), usageLine)
 	}
 	flag.Parse()
-	if gHelp {
+	if c.help {
 		// When user-initiated, print detailed usage message to stdout.
 		flag.CommandLine.SetOutput(os.Stdout)
 		flag.Usage()
 		fmt.Fprint(os.Stdout, helpMessage)
 		os.Exit(0)
 	}
-	if gVersion {
+	if c.version {
 		fmt.Println(version())
 		os.Exit(0)
 	}
-	if gPrintDefault {
+	if c.printDefault {
 		fmt.Fprintln(os.Stdout, gOpts)
 		os.Exit(0)
 	}
-	if err := loadConfig(gConfigPath); err != nil {
+	if err := loadConfig(c.configPath); err != nil {
 		// Don't force users to always have a config file (even though
 		// changes to `previewer` will most likely be required anyway).
-		if !os.IsNotExist(err) || gConfigPath != gDefaultConfigPath {
+		if !os.IsNotExist(err) || c.configPath != defaultConfigPath {
 			fmt.Fprintf(os.Stderr, "%s: loading config: %s\n", progName, err)
 			os.Exit(1)
 		}
 	}
 
-	run()
+	run(c)
 }
 
 type picture struct {
@@ -219,7 +223,7 @@ func newPicture(path string) (*picture, error) {
 	}, nil
 }
 
-func run() {
+func run(c cli) {
 	paths := pathsFromArgs(flag.Args())
 	pics := make([]*picture, 0, len(paths))
 
@@ -236,7 +240,7 @@ func run() {
 		fmt.Fprintf(os.Stderr, "%s: no allowed files found\n", progName)
 		os.Exit(1)
 	}
-	curr, err := startIndex(pics)
+	curr, err := startIndex(pics, c.startIdx, c.startPath)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%s: %s\n", progName, err)
 		os.Exit(1)
@@ -486,15 +490,15 @@ func version() string {
 	return fmt.Sprintf("%s %s", progName, bi.Main.Version)
 }
 
-func startIndex(pics []*picture) (int, error) {
-	if gStartIdx >= 1 {
-		gStartIdx = min(gStartIdx, len(pics)) - 1
-		return gStartIdx, nil
+func startIndex(pics []*picture, startIdx int, startPath string) (int, error) {
+	if startIdx >= 1 {
+		startIdx = min(startIdx, len(pics)) - 1
+		return startIdx, nil
 	}
-	if gStartPath == "" {
+	if startPath == "" {
 		return 0, nil
 	}
-	path := gStartPath
+	path := startPath
 	if !filepath.IsAbs(path) {
 		if abs, err := filepath.Abs(path); err == nil {
 			path = abs
