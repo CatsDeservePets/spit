@@ -43,6 +43,7 @@ type cli struct {
 	printDefault bool
 	startIdx     int
 	startPath    string
+	args         []string
 }
 
 var (
@@ -94,6 +95,10 @@ func main() {
 		fmt.Fprint(flag.CommandLine.Output(), usageLine)
 	}
 	flag.Parse()
+	if c.args = flag.Args(); len(c.args) == 0 {
+		// Use images in cwd by default.
+		c.args = []string{"*"}
+	}
 	if c.help {
 		// When user-initiated, print detailed usage message to stdout.
 		flag.CommandLine.SetOutput(os.Stdout)
@@ -130,10 +135,6 @@ type picture struct {
 }
 
 func expandGlobs(args []string) []string {
-	// Use images in cwd by default.
-	if len(args) == 0 {
-		args = []string{"*"}
-	}
 	out := make([]string, 0, len(args))
 	for _, pattern := range args {
 		// Windows does not expand shell globs automatically,
@@ -224,7 +225,7 @@ func newPicture(path string) (*picture, error) {
 }
 
 func run(c cli) {
-	paths := pathsFromArgs(flag.Args())
+	paths := pathsFromArgs(c.args)
 	pics := make([]*picture, 0, len(paths))
 
 	for _, p := range paths {
