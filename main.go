@@ -167,19 +167,22 @@ func pathsFromArgs(args []string) []string {
 			appendPath(p)
 			continue
 		}
-		f, err := os.Open(p)
-		if err != nil {
-			continue
-		}
-		names, err := f.Readdirnames(-1)
-		if err != nil {
-			continue
-		}
-		defer f.Close()
+		func() {
+			f, err := os.Open(p)
+			if err != nil {
+				return
+			}
+			defer f.Close()
 
-		for _, name := range names {
-			appendPath(filepath.Join(p, name))
-		}
+			names, err := f.Readdirnames(-1)
+			if err != nil {
+				return
+			}
+
+			for _, name := range names {
+				appendPath(filepath.Join(p, name))
+			}
+		}()
 	}
 
 	return out
