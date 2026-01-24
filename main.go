@@ -44,7 +44,7 @@ var (
 )
 
 var (
-	usageLine   = "usage: %s [-h] [-V] [-p] [-c FILE] [-n VALUE] [path ...]\n"
+	usageLine   = fmt.Sprintf("usage: %s [-h] [-V] [-p] [-c FILE] [-n VALUE] [path ...]\n", progName)
 	helpMessage = fmt.Sprintf(`
 spit - Show Pictures In Terminal
 
@@ -87,7 +87,7 @@ func main() {
 	})
 	flag.Usage = func() {
 		// When triggered by an error, print compact version to stderr.
-		fmt.Fprintf(flag.CommandLine.Output(), usageLine, progName)
+		fmt.Fprint(flag.CommandLine.Output(), usageLine)
 	}
 	flag.Parse()
 	if gHelp {
