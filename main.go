@@ -36,94 +36,30 @@ var (
 	defaultConfigPath = filepath.Join(configDir(), "spit", "spit.conf")
 )
 
-type cli struct {
-	configPath   string
-	help         bool
-	version      bool
-	printDefault bool
-	startIdx     int
-	startPath    string
-	args         []string
-}
-
-var (
-	usageLine   = fmt.Sprintf("usage: %s [-h] [-V] [-p] [-c FILE] [-n VALUE] [path ...]\n", progName)
-	helpMessage = fmt.Sprintf(`
-spit - Show Pictures In Terminal
-
-positional arguments:
-  path          image files or directories (default: .)
-
-options:
-  -h, -help     show this help message and exit
-  -V, -version  show program's version number and exit
-  -p            print default configuration and exit
-  -c FILE       use this configuration file (default: %s)
-  -n VALUE      set initial image using 1-based index or filename (default: 1)
-
-navigation:
-  l, j          move forward
-  h, k          move backward
-  g             go to first image
-  G             go to last image
-  ?             help
-  q             quit
-`, defaultConfigPath)
-)
-
 func main() {
-	var c cli
-
-	flag.BoolVar(&c.help, "h", false, "")
-	flag.BoolVar(&c.help, "help", false, "")
-	flag.BoolVar(&c.version, "V", false, "")
-	flag.BoolVar(&c.version, "version", false, "")
-	flag.BoolVar(&c.printDefault, "p", false, "")
-	flag.StringVar(&c.configPath, "c", defaultConfigPath, "")
-	flag.Func("n", "", func(s string) error {
-		if n, err := strconv.Atoi(s); err == nil {
-			if n < 1 {
-				return fmt.Errorf("must be >= 1")
-			}
-			c.startIdx = n
-		}
-		c.startPath = s
-		return nil
-	})
-	flag.Usage = func() {
-		// When triggered by an error, print compact version to stderr.
-		fmt.Fprint(flag.CommandLine.Output(), usageLine)
-	}
-	flag.Parse()
-	if c.args = flag.Args(); len(c.args) == 0 {
-		// Use images in cwd by default.
-		c.args = []string{"*"}
-	}
-	if c.help {
-		// When user-initiated, print detailed usage message to stdout.
-		flag.CommandLine.SetOutput(os.Stdout)
-		flag.Usage()
-		fmt.Fprint(os.Stdout, helpMessage)
+	cli := parseFlags()
+	switch {
+	case cli.help:
+		fmt.Println(usageLine)
+		fmt.Println(helpMessage)
 		os.Exit(0)
-	}
-	if c.version {
+	case cli.version:
 		fmt.Println(version())
 		os.Exit(0)
-	}
-	if c.printDefault {
+	case cli.printDefault:
 		fmt.Fprintln(os.Stdout, gOpts)
 		os.Exit(0)
 	}
-	if err := loadConfig(c.configPath); err != nil {
+	if err := loadConfig(cli.configPath); err != nil {
 		// Don't force users to always have a config file (even though
 		// changes to `previewer` will most likely be required anyway).
-		if !os.IsNotExist(err) || c.configPath != defaultConfigPath {
+		if !os.IsNotExist(err) || cli.configPath != defaultConfigPath {
 			fmt.Fprintf(os.Stderr, "%s: loading config: %s\n", progName, err)
 			os.Exit(1)
 		}
 	}
 
-	run(c)
+	run(cli)
 }
 
 type picture struct {
@@ -134,24 +70,8 @@ type picture struct {
 	format        string
 }
 
-func expandGlobs(args []string) []string {
-	out := make([]string, 0, len(args))
-	for _, pattern := range args {
-		// Windows does not expand shell globs automatically,
-		// so we try to expand patterns ourselves.
-		if matches, _ := filepath.Glob(pattern); len(matches) > 0 {
-			out = append(out, matches...)
-		} else {
-			// Fall back to literal path.
-			out = append(out, pattern)
-		}
-	}
-	return out
-}
-
 func pathsFromArgs(args []string) []string {
-	paths := expandGlobs(args)
-	out := make([]string, 0, len(paths))
+	out := make([]string, 0, len(args))
 
 	appendPath := func(p string) {
 		ext := strings.ToLower(filepath.Ext(p))
@@ -161,7 +81,7 @@ func pathsFromArgs(args []string) []string {
 		// TODO: Log skipped images
 	}
 
-	for _, p := range paths {
+	for _, p := range args {
 		// Only expand literal directory arguments, not glob matches.
 		if !strings.HasSuffix(p, string(os.PathSeparator)) {
 			appendPath(p)
@@ -227,8 +147,8 @@ func newPicture(path string) (*picture, error) {
 	}, nil
 }
 
-func run(c cli) {
-	paths := pathsFromArgs(c.args)
+func run(cli flags) {
+	paths := pathsFromArgs(cli.args)
 	pics := make([]*picture, 0, len(paths))
 
 	for _, p := range paths {
@@ -244,7 +164,7 @@ func run(c cli) {
 		fmt.Fprintf(os.Stderr, "%s: no allowed files found\n", progName)
 		os.Exit(1)
 	}
-	curr, err := startIndex(pics, c.startIdx, c.startPath)
+	curr, err := startIndex(pics, cli.startIdx, cli.startPath)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%s: %s\n", progName, err)
 		os.Exit(1)
