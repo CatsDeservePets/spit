@@ -19,7 +19,7 @@ usage: spit [-h] [-V] [-p] [-c FILE] [-n VALUE] [path ...]
 spit - Show Pictures In Terminal
 
 positional arguments:
-  path          image files or directories (default: .)
+  path          image files or directories (default: *)
 
 options:
   -h, -help     show this help message and exit
@@ -37,6 +37,10 @@ navigation:
   q             quit
 ```
 
+> [!NOTE]
+> Directory paths must end with a path separator (`/` on Unix, `\` on Windows).
+> For example: `Downloads/` (not `Downloads`).
+
 ## Configuration
 
 ### Image previews
@@ -46,7 +50,7 @@ See the [Config file](#config-file) section for available expansions.
 
 Kitty:
 ```shell
-previewer="kitten icat --clear --stdin=no --transfer-mode=memory --place %cx%r@0x0 --scale-up=yes %f"
+previewer="kitten icat --clear --stdin=no --transfer-mode=memory --place=%cx%r@0x0 --scale-up=yes %f"
 ```
 Chafa:
 ```shell
@@ -54,12 +58,12 @@ previewer="chafa --clear --size=%cx%r --align=mid,mid %f"
 ```
 
 There is also a `cleaner` command that clears the previously drawn image. Many tools and protocols already offer a flag to clear.\
-However, in some cases it still makes sense to separate clearing and drawing.
+However, in some cases it might still be useful to separate clearing and drawing (e.g. performance reasons).
 
-For tools without a clear option:
+For tools without a clear option, you can clear the screen manually:
 
 ```shell
-cleaner="echo -e '\033[2J\033[H'"
+cleaner="printf \033[2J\033[H"
 ```
 
 > [!NOTE]
@@ -67,16 +71,19 @@ cleaner="echo -e '\033[2J\033[H'"
 > Tools like `chafa` or `viu` can behave differently across terminals. Be prepared to tweak flags and try out different things to make it all work.\
 > Using a terminal multiplexer like `Tmux` can also cause issues with some tools.
 
-
 ### Config file
 
-By default, `spit` looks for configuration files in these locations:
+By default, `spit` loads its configuration from:
+
+	$XDG_CONFIG_HOME/spit/spit.conf
+
+If `$XDG_CONFIG_HOME` is not set, it falls back to:
 
 	Linux    ~/.config/spit/spit.conf
-	MacOS    /Users/<user>/Library/Application Support/spit/spit.conf
-	Windows  C:\Users\<user>\AppData\Roaming\spit\spit.conf
+	macOS    ~/Library/Application Support/spit/spit.conf
+	Windows  %AppData%\spit\spit.conf
 
-This can be overridden by setting `$XDG_CONFIG_HOME` or by using the `-config` flag.
+The `-config` flag takes precedence over all of the above.
 
 ### Default configuration
 
@@ -101,7 +108,7 @@ humanreadable=false
 # %c terminal columns
 # %r terminal rows
 # %f file name (including path)
-previewer="kitten icat --clear --stdin=no --transfer-mode=memory --place %cx%r@0x0 --scale-up=yes %f"
+previewer="kitten icat --clear --stdin=no --transfer-mode=memory --place=%cx%r@0x0 --scale-up=yes %f"
 
 # Set the look of the statusline.
 # Following expansions are available:

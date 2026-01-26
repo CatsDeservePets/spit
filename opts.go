@@ -71,7 +71,7 @@ func init() {
 		errorfmt:      "\033[7;31;47m",
 		extensions:    []string{".bmp", ".gif", ".jpg", ".jpeg", ".png", ".tif", ".tiff", ".webp"},
 		humanreadable: false,
-		previewer:     "kitten icat --clear --stdin=no --transfer-mode=memory --place %cx%r@0x0 --scale-up=yes %f",
+		previewer:     "kitten icat --clear --stdin=no --transfer-mode=memory --place=%cx%r@0x0 --scale-up=yes %f",
 		statusline:    "%f %= %wx%h  %s  %i/%t",
 		title:         false,
 		truncatechar:  "<",

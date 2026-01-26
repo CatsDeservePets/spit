@@ -13,7 +13,7 @@ var (
 spit - Show Pictures In Terminal
 
 positional arguments:
-  path          image files or directories (default: .)
+  path          image files or directories (default: *)
 
 options:
   -h, -help     show this help message and exit
