@@ -172,12 +172,16 @@ func run(cli flags) {
 
 	showAlternateScreen()
 	hideCursor()
-	oldState, err := term.MakeRaw(int(os.Stdin.Fd()))
+
+	fdIn := int(os.Stdin.Fd())
+	fdOut := int(os.Stdout.Fd())
+
+	oldState, err := term.MakeRaw(fdIn)
 	if err != nil {
 		os.Exit(1)
 	}
 
-	defer term.Restore(int(os.Stdin.Fd()), oldState)
+	defer term.Restore(fdIn, oldState)
 	defer hideAlternateScreen()
 	defer showCursor()
 
@@ -190,7 +194,7 @@ func run(cli flags) {
 				setTitle(fmt.Sprintf("%s - %s", progName, pics[curr].name))
 			}
 
-			cols, rows, err := term.GetSize(int(os.Stdout.Fd()))
+			cols, rows, err := term.GetSize(fdOut)
 			if err != nil {
 				panic(err)
 			}
@@ -246,14 +250,14 @@ func run(cli flags) {
 			curr = total - 1
 		case '?':
 			// hacky solution, works for now
-			term.Restore(int(os.Stdin.Fd()), oldState)
+			term.Restore(fdIn, oldState)
 			clear()
 			flag.Usage()
 			fmt.Print(helpMessage)
 			fmt.Print("\n\nPress ENTER to continue")
 			bufio.NewReader(os.Stdin).ReadBytes('\n')
 			clear()
-			oldState, err = term.MakeRaw(int(os.Stdin.Fd()))
+			oldState, err = term.MakeRaw(fdIn)
 			if err != nil {
 				os.Exit(1)
 			}
