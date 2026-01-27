@@ -201,16 +201,18 @@ func run(cli flags) {
 			pic := pics[curr]
 			path := pic.path
 
+			errMsg := ""
 			if err := execCmd(generateCmd(gOpts.cleaner, cols, rows, path)); err != nil {
-				showError("Error clearing screen", rows)
-				continue
+				errMsg = "Error clearing screen"
 			}
 			moveCursor(1, 1)
 			if err := execCmd(generateCmd(gOpts.previewer, cols, rows, path)); err != nil {
-				showError(fmt.Sprintf("Error displaying %q", path), rows)
-				continue
+				errMsg = fmt.Sprintf("Error displaying %q", path)
 			}
 			printStatus(pic, curr+1, total, cols, rows)
+			if errMsg != "" {
+				showError(errMsg, rows)
+			}
 		}
 		b, err := reader.ReadByte()
 		if err != nil {
