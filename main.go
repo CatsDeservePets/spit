@@ -198,40 +198,19 @@ func run(cli flags) {
 			if err != nil {
 				panic(err)
 			}
-			path := pics[curr].path
+			pic := pics[curr]
+			path := pic.path
 
-			generateCmd := func(s string) (string, []string) {
-				if s == "" {
-					return "", nil
-				}
-				r := strings.NewReplacer(
-					"%%", "%",
-					"%c", strconv.Itoa(cols),
-					"%r", strconv.Itoa(rows-2), // leave space for statusline
-					"%f", path,
-				)
-
-				parts := strings.Fields(s)
-				for i, v := range parts {
-					parts[i] = r.Replace(v)
-				}
-
-				if len(parts) < 2 {
-					return parts[0], []string{}
-				}
-				return parts[0], parts[1:]
-			}
-
-			if err := execCmd(generateCmd(gOpts.cleaner)); err != nil {
+			if err := execCmd(generateCmd(gOpts.cleaner, cols, rows, path)); err != nil {
 				showError("Error clearing screen", rows)
 				continue
 			}
 			moveCursor(1, 1)
-			if err := execCmd(generateCmd(gOpts.previewer)); err != nil {
+			if err := execCmd(generateCmd(gOpts.previewer, cols, rows, path)); err != nil {
 				showError(fmt.Sprintf("Error displaying %q", path), rows)
 				continue
 			}
-			printStatus(pics[curr], curr+1, total)
+			printStatus(pic, curr+1, total, cols, rows)
 		}
 		b, err := reader.ReadByte()
 		if err != nil {
@@ -249,21 +228,35 @@ func run(cli flags) {
 		case 'G':
 			curr = total - 1
 		case '?':
-			// hacky solution, works for now
-			term.Restore(fdIn, oldState)
-			clear()
-			flag.Usage()
-			fmt.Print(helpMessage)
-			fmt.Print("\n\nPress ENTER to continue")
-			bufio.NewReader(os.Stdin).ReadBytes('\n')
-			clear()
-			oldState, err = term.MakeRaw(fdIn)
+			oldState, err = showHelp(fdIn, oldState)
 			if err != nil {
 				os.Exit(1)
 			}
 			last--
 		}
 	}
+}
+
+// generateCmd splits s by whitespace and expands its placeholders.
+// It returns the executable name and its arguments.
+func generateCmd(s string, cols, rows int, path string) (string, []string) {
+	parts := strings.Fields(s)
+	if len(parts) == 0 {
+		return "", nil
+	}
+
+	r := strings.NewReplacer(
+		"%%", "%",
+		"%c", strconv.Itoa(cols),
+		"%r", strconv.Itoa(max(rows-2, 0)),
+		"%f", path,
+	)
+
+	for i, v := range parts {
+		parts[i] = r.Replace(v)
+	}
+
+	return parts[0], parts[1:]
 }
 
 func execCmd(name string, args []string) error {
@@ -315,13 +308,9 @@ func displayWidth(s string) int {
 	return w
 }
 
-func printStatus(pic *picture, idx, total int) {
+func printStatus(pic *picture, idx, total, cols, rows int) {
 	if gOpts.statusline == "" {
 		return
-	}
-	cols, rows, err := term.GetSize(int(os.Stdout.Fd()))
-	if err != nil {
-		panic(err)
 	}
 
 	var size string
@@ -408,6 +397,22 @@ func humanReadable(size int64) string {
 func showError(s string, line int) {
 	reset := "\033[0m"
 	printAt(line, 1, fmt.Sprintf("%s%s%s", gOpts.errorfmt, s, reset))
+}
+
+// hacky solution, works for now
+func showHelp(fdIn int, oldState *term.State) (*term.State, error) {
+	if err := term.Restore(fdIn, oldState); err != nil {
+		return oldState, err
+	}
+
+	clear()
+	flag.Usage()
+	fmt.Print(helpMessage)
+	fmt.Print("\n\nPress ENTER to continue")
+	bufio.NewReader(os.Stdin).ReadBytes('\n')
+	clear()
+
+	return term.MakeRaw(fdIn)
 }
 
 func version() string {
