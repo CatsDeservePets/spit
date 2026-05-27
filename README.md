@@ -38,8 +38,9 @@ navigation:
 ```
 
 > [!NOTE]
-> Directory paths must end with a path separator (`/` on Unix, `\` on Windows).
-> For example: `Downloads/` (not `Downloads`).
+> Directory paths must end with a path separator (`/` on Unix, `\` on Windows).\
+> For example: `Downloads/` (not `Downloads`).\
+> This keeps directory arguments distinct from paths produced by shell globbing.
 
 ## Configuration
 
