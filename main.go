@@ -338,7 +338,7 @@ func printStatus(pic *picture, idx, total, cols, rows int) {
 	}
 
 	gaps := strings.Count(gOpts.statusline, "%=")
-	excess := (displayWidth(s) - (gaps)*2) - cols // account for %=
+	excess := (displayWidth(s) - gaps*2) - cols // account for %=
 	if excess > 0 {
 		// try truncating filename if possible
 		if excess < displayWidth(pic.name) {
