@@ -9,6 +9,7 @@ import (
 	_ "image/gif"
 	_ "image/jpeg"
 	_ "image/png"
+	"log"
 	"math"
 	"os"
 	"os/exec"
@@ -37,6 +38,9 @@ var (
 )
 
 func main() {
+	log.SetFlags(0)
+	log.SetPrefix("spit: ")
+
 	cli := parseFlags()
 	switch {
 	case cli.help:
@@ -47,15 +51,14 @@ func main() {
 		fmt.Println(version())
 		os.Exit(0)
 	case cli.printDefault:
-		fmt.Fprintln(os.Stdout, gOpts)
+		fmt.Println(gOpts)
 		os.Exit(0)
 	}
 	if err := loadConfig(cli.configPath); err != nil {
 		// Don't force users to always have a config file (even though
 		// changes to `previewer` will most likely be required anyway).
 		if !os.IsNotExist(err) || cli.configPath != defaultConfigPath {
-			fmt.Fprintf(os.Stderr, "%s: loading config: %s\n", progName, err)
-			os.Exit(1)
+			log.Fatalf("loading config: %s", err)
 		}
 	}
 
@@ -111,28 +114,28 @@ func pathsFromArgs(args []string) []string {
 func newPicture(path string) (*picture, error) {
 	f, err := os.Open(path)
 	if err != nil {
-		return nil, fmt.Errorf("open: %s", err)
+		return nil, err
 	}
 	defer f.Close()
 
 	info, err := f.Stat()
 	if err != nil {
-		return nil, fmt.Errorf("stat: %s", err)
+		return nil, err
 	}
 	if !info.Mode().IsRegular() {
-		return nil, fmt.Errorf("not a regular file")
+		return nil, &os.PathError{Op: "open", Path: path, Err: os.ErrInvalid}
 	}
 
 	absPath, err := filepath.Abs(path)
 	if err != nil {
-		return nil, fmt.Errorf("abs: %w", err)
+		return nil, err
 	}
 
 	cfg, format, err := image.DecodeConfig(f)
 	if err != nil {
 		// DecodeConfig errors are only meaningful for known formats.
 		if slices.Contains(knownFormats, strings.ToLower(filepath.Ext(absPath))) {
-			return nil, err
+			return nil, &os.PathError{Op: "decode", Path: path, Err: err}
 		}
 		// TODO: Log skipped validation
 	}
@@ -154,20 +157,19 @@ func run(cli flags) {
 	for _, p := range paths {
 		pic, err := newPicture(p)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "%s: %s\n", p, err)
+			log.Print(err)
 		} else if pic != nil {
 			pics = append(pics, pic)
 		}
 	}
 	total := len(pics)
 	if total == 0 {
-		fmt.Fprintf(os.Stderr, "%s: no allowed files found\n", progName)
-		os.Exit(1)
+		log.Fatal("no images loaded")
 	}
+
 	curr, err := startIndex(pics, cli.startIdx, cli.startPath)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "%s: %s\n", progName, err)
-		os.Exit(1)
+		log.Print(err)
 	}
 
 	showAlternateScreen()
@@ -444,5 +446,5 @@ func startIndex(pics []*picture, startIdx int, startPath string) (int, error) {
 			return i, nil
 		}
 	}
-	return 0, fmt.Errorf("invalid start image")
+	return 0, fmt.Errorf("start image not loaded: %s", startPath)
 }
