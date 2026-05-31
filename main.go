@@ -342,7 +342,7 @@ func printStatus(pic *picture, idx, total, cols, rows int) {
 	if excess > 0 {
 		// try truncating filename if possible
 		if excess < displayWidth(pic.name) {
-			// use runes for slicing to not mess up mutli-byte chars
+			// use runes for slicing to not mess up multi-byte chars
 			repl := gOpts.truncatechar + string([]rune(pic.name)[excess+displayWidth(gOpts.truncatechar):])
 			s = strings.Replace(s, pic.name, repl, 1)
 		} else {
