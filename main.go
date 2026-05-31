@@ -193,7 +193,7 @@ func run(cli flags) {
 		if last != curr {
 			last = curr
 			if gOpts.title {
-				setTitle(fmt.Sprintf("%s - %s", progName, pics[curr].name))
+				setTitle(progName + " - " + pics[curr].name)
 			}
 
 			cols, rows, err := term.GetSize(fdOut)
@@ -399,7 +399,7 @@ func humanReadable(size int64) string {
 
 func showError(s string, line int) {
 	reset := "\033[0m"
-	printAt(line, 1, fmt.Sprintf("%s%s%s", gOpts.errorfmt, s, reset))
+	printAt(line, 1, gOpts.errorfmt+s+reset)
 }
 
 // hacky solution, works for now
@@ -423,7 +423,7 @@ func version() string {
 	if !ok {
 		return progName + " unknown"
 	}
-	return fmt.Sprintf("%s %s", progName, bi.Main.Version)
+	return progName + " " + bi.Main.Version
 }
 
 func startIndex(pics []*picture, startIdx int, startPath string) (int, error) {
