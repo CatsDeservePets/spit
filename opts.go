@@ -12,7 +12,7 @@ import (
 type options struct {
 	cleaner       string   `comment:"Command used to cleanup the preview.\nFor more details about expansions, see 'previewer'."`
 	errorfmt      string   `comment:"Format string for error messages"`
-	extensions    []string `comment:"Enable 'spit' on the following image extensions"`
+	extensions    []string `comment:"File extensions used to filter input paths.\nEmpty disables extension filtering."`
 	humanreadable bool     `comment:"Use human readable sizes"`
 	previewer     string   `comment:"Command used to preview images.\nFollowing expansions are available:\n%c terminal columns\n%r terminal rows\n%f file name (including path)"`
 	statusline    string   `comment:"Set the look of the statusline.\nFollowing expansions are available:\n%f file name\n%h image height\n%w image width\n%i current index\n%t total amount of images\n%s image size\n%= alignment separator"`

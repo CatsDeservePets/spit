@@ -98,7 +98,8 @@ cleaner=""
 # Format string for error messages
 errorfmt="\x1b[7;31;47m"
 
-# Enable 'spit' on the following image extensions
+# File extensions used to filter input paths.
+# Empty disables extension filtering.
 extensions="bmp,gif,jpg,jpeg,png,tif,tiff,webp"
 
 # Use human readable sizes

@@ -77,8 +77,8 @@ func pathsFromArgs(args []string) []string {
 	out := make([]string, 0, len(args))
 
 	appendPath := func(p string) {
-		ext := strings.ToLower(filepath.Ext(p))
-		if slices.Contains(gOpts.extensions, ext) {
+		if len(gOpts.extensions) == 0 ||
+			slices.Contains(gOpts.extensions, strings.ToLower(filepath.Ext(p))) {
 			out = append(out, p)
 		}
 		// TODO: Log skipped images
