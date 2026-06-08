@@ -139,21 +139,27 @@ func run(cli flags) {
 				showError(errMsg, rows)
 			}
 		}
-		b, err := reader.ReadByte()
+		key, count, err := readKey(reader)
 		if err != nil {
 			return
 		}
-		switch b {
+		switch key {
 		case 'q':
 			return
 		case 'l', 'j':
-			curr = next(curr, total)
+			curr = move(curr, total, max(count, 1))
 		case 'h', 'k':
-			curr = prev(curr, total)
+			curr = move(curr, total, -max(count, 1))
 		case 'g':
+			// TODO: gg
 			curr = 0
 		case 'G':
-			curr = total - 1
+			// G jumps to the last image unless it is preceded by a count.
+			if count == 0 {
+				curr = total - 1
+			} else {
+				curr = min(count, total) - 1
+			}
 		case '?':
 			oldState, err = showHelp(fdIn, oldState)
 			if err != nil {
@@ -162,6 +168,24 @@ func run(cli flags) {
 			last--
 		}
 	}
+}
+
+func readKey(r *bufio.Reader) (byte, int, error) {
+	count := 0
+	for {
+		b, err := r.ReadByte()
+		if err != nil {
+			return 0, 0, err
+		}
+		if !isDigit(b) {
+			return b, count, nil
+		}
+		count = count*10 + int(b-'0')
+	}
+}
+
+func isDigit(b byte) bool {
+	return b >= '0' && b <= '9'
 }
 
 func pathsFromArgs(args []string) []string {
@@ -301,18 +325,16 @@ func execCmd(name string, args []string) error {
 	return nil
 }
 
-func next(idx, n int) int {
+func move(idx, n, delta int) int {
+	next := idx + delta
 	if gOpts.wrapscroll {
-		return (idx + 1) % n
+		next %= n
+		if next < 0 {
+			next += n
+		}
+		return next
 	}
-	return min(idx+1, n-1)
-}
-
-func prev(idx, n int) int {
-	if gOpts.wrapscroll {
-		return (idx - 1 + n) % n
-	}
-	return max(0, idx-1)
+	return min(max(next, 0), n-1)
 }
 
 func printStatus(pic *picture, idx, total, cols, rows int) {
