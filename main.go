@@ -37,6 +37,14 @@ var (
 	defaultConfigPath = filepath.Join(configDir(), "spit", "spit.conf")
 )
 
+type picture struct {
+	name          string
+	path          string
+	size          int64
+	width, height int
+	format        string
+}
+
 func main() {
 	log.SetFlags(0)
 	log.SetPrefix("spit: ")
@@ -63,91 +71,6 @@ func main() {
 	}
 
 	run(cli)
-}
-
-type picture struct {
-	name          string
-	path          string
-	size          int64
-	width, height int
-	format        string
-}
-
-func pathsFromArgs(args []string) []string {
-	out := make([]string, 0, len(args))
-
-	appendPath := func(p string) {
-		if len(gOpts.extensions) == 0 ||
-			slices.Contains(gOpts.extensions, strings.ToLower(filepath.Ext(p))) {
-			out = append(out, p)
-		}
-		// TODO: Log skipped images
-	}
-
-	for _, p := range args {
-		// Only expand literal directory arguments, not glob matches.
-		if !strings.HasSuffix(p, string(os.PathSeparator)) {
-			appendPath(p)
-			continue
-		}
-		func() {
-			f, err := os.Open(p)
-			if err != nil {
-				return
-			}
-			defer f.Close()
-
-			names, err := f.Readdirnames(-1)
-			if err != nil {
-				return
-			}
-
-			for _, name := range names {
-				appendPath(filepath.Join(p, name))
-			}
-		}()
-	}
-
-	return out
-}
-
-func newPicture(path string) (*picture, error) {
-	f, err := os.Open(path)
-	if err != nil {
-		return nil, err
-	}
-	defer f.Close()
-
-	info, err := f.Stat()
-	if err != nil {
-		return nil, err
-	}
-	if !info.Mode().IsRegular() {
-		return nil, &os.PathError{Op: "open", Path: path, Err: os.ErrInvalid}
-	}
-
-	absPath, err := filepath.Abs(path)
-	if err != nil {
-		return nil, err
-	}
-
-	cfg, format, err := image.DecodeConfig(f)
-	if err != nil {
-		// DecodeConfig errors are only meaningful for known formats.
-		if slices.Contains(knownFormats, strings.ToLower(filepath.Ext(absPath))) {
-			return nil, &os.PathError{Op: "decode", Path: path, Err: err}
-		}
-		// TODO: Log skipped validation
-	}
-
-	return &picture{
-		name:   info.Name(),
-		path:   absPath,
-		size:   info.Size(),
-		width:  cfg.Width,
-		height: cfg.Height,
-		format: format,
-	}, nil
 }
 
 func run(cli flags) {
@@ -241,6 +164,106 @@ func run(cli flags) {
 	}
 }
 
+func pathsFromArgs(args []string) []string {
+	out := make([]string, 0, len(args))
+
+	appendPath := func(p string) {
+		if len(gOpts.extensions) == 0 ||
+			slices.Contains(gOpts.extensions, strings.ToLower(filepath.Ext(p))) {
+			out = append(out, p)
+		}
+		// TODO: Log skipped images
+	}
+
+	for _, p := range args {
+		// Only expand literal directory arguments, not glob matches.
+		if !strings.HasSuffix(p, string(os.PathSeparator)) {
+			appendPath(p)
+			continue
+		}
+		func() {
+			f, err := os.Open(p)
+			if err != nil {
+				return
+			}
+			defer f.Close()
+
+			names, err := f.Readdirnames(-1)
+			if err != nil {
+				return
+			}
+
+			for _, name := range names {
+				appendPath(filepath.Join(p, name))
+			}
+		}()
+	}
+
+	return out
+}
+
+func newPicture(path string) (*picture, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+
+	info, err := f.Stat()
+	if err != nil {
+		return nil, err
+	}
+	if !info.Mode().IsRegular() {
+		return nil, &os.PathError{Op: "open", Path: path, Err: os.ErrInvalid}
+	}
+
+	absPath, err := filepath.Abs(path)
+	if err != nil {
+		return nil, err
+	}
+
+	cfg, format, err := image.DecodeConfig(f)
+	if err != nil {
+		// DecodeConfig errors are only meaningful for known formats.
+		if slices.Contains(knownFormats, strings.ToLower(filepath.Ext(absPath))) {
+			return nil, &os.PathError{Op: "decode", Path: path, Err: err}
+		}
+		// TODO: Log skipped validation
+	}
+
+	return &picture{
+		name:   info.Name(),
+		path:   absPath,
+		size:   info.Size(),
+		width:  cfg.Width,
+		height: cfg.Height,
+		format: format,
+	}, nil
+}
+
+func startIndex(pics []*picture, startIdx int, startPath string) (int, error) {
+	if startIdx >= 1 {
+		startIdx = min(startIdx, len(pics)) - 1
+		return startIdx, nil
+	}
+	if startPath == "" {
+		return 0, nil
+	}
+	path := startPath
+	if !filepath.IsAbs(path) {
+		if abs, err := filepath.Abs(path); err == nil {
+			path = abs
+		}
+	}
+	base := filepath.Base(path)
+	for i, p := range pics {
+		if p.path == path || p.name == base {
+			return i, nil
+		}
+	}
+	return 0, fmt.Errorf("start image not loaded: %s", startPath)
+}
+
 // generateCmd splits s by whitespace and expands its placeholders.
 // It returns the executable name and its arguments.
 func generateCmd(s string, cols, rows int, path string) (string, []string) {
@@ -290,25 +313,6 @@ func prev(idx, n int) int {
 		return (idx - 1 + n) % n
 	}
 	return max(0, idx-1)
-}
-
-func runeWidth(r rune) int {
-	if unicode.Is(unicode.Mn, r) {
-		return 0
-	}
-	// Emoji
-	if utf8.RuneLen(r) == 4 {
-		return 2
-	}
-	return 1
-}
-
-func displayWidth(s string) int {
-	w := 0
-	for _, r := range s {
-		w += runeWidth(r)
-	}
-	return w
 }
 
 func printStatus(pic *picture, idx, total, cols, rows int) {
@@ -397,6 +401,25 @@ func humanReadable(size int64) string {
 	return "+999" + units[len(units)-1]
 }
 
+func displayWidth(s string) int {
+	w := 0
+	for _, r := range s {
+		w += runeWidth(r)
+	}
+	return w
+}
+
+func runeWidth(r rune) int {
+	if unicode.Is(unicode.Mn, r) {
+		return 0
+	}
+	// Emoji
+	if utf8.RuneLen(r) == 4 {
+		return 2
+	}
+	return 1
+}
+
 func showError(s string, line int) {
 	reset := "\033[0m"
 	printAt(line, 1, gOpts.errorfmt+s+reset)
@@ -424,27 +447,4 @@ func version() string {
 		return progName + " unknown"
 	}
 	return progName + " " + bi.Main.Version
-}
-
-func startIndex(pics []*picture, startIdx int, startPath string) (int, error) {
-	if startIdx >= 1 {
-		startIdx = min(startIdx, len(pics)) - 1
-		return startIdx, nil
-	}
-	if startPath == "" {
-		return 0, nil
-	}
-	path := startPath
-	if !filepath.IsAbs(path) {
-		if abs, err := filepath.Abs(path); err == nil {
-			path = abs
-		}
-	}
-	base := filepath.Base(path)
-	for i, p := range pics {
-		if p.path == path || p.name == base {
-			return i, nil
-		}
-	}
-	return 0, fmt.Errorf("start image not loaded: %s", startPath)
 }
