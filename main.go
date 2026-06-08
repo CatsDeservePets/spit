@@ -3,7 +3,6 @@ package main
 import (
 	"bufio"
 	"bytes"
-	"flag"
 	"fmt"
 	"image"
 	_ "image/gif"
@@ -161,10 +160,14 @@ func run(cli flags) {
 				curr = min(count, total) - 1
 			}
 		case '?':
-			oldState, err = showHelp(fdIn, oldState)
-			if err != nil {
-				os.Exit(1)
+			clear()
+			printAt(1, 1, usageLine)
+			for i, v := range strings.Split(helpMessage, "\n") {
+				printAt(2+i, 1, v)
 			}
+			printAt(999, 1, "Press any key to continue...")
+			readKey(reader)
+			clear()
 			last--
 		}
 	}
@@ -445,22 +448,6 @@ func runeWidth(r rune) int {
 func showError(s string, line int) {
 	reset := "\033[0m"
 	printAt(line, 1, gOpts.errorfmt+s+reset)
-}
-
-// hacky solution, works for now
-func showHelp(fdIn int, oldState *term.State) (*term.State, error) {
-	if err := term.Restore(fdIn, oldState); err != nil {
-		return oldState, err
-	}
-
-	clear()
-	flag.Usage()
-	fmt.Print(helpMessage)
-	fmt.Print("\n\nPress ENTER to continue")
-	bufio.NewReader(os.Stdin).ReadBytes('\n')
-	clear()
-
-	return term.MakeRaw(fdIn)
 }
 
 func version() string {
