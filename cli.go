@@ -23,10 +23,10 @@ options:
   -n VALUE      set initial image using 1-based index or filename (default: 1)
 
 navigation:
-  l, j          move forward
-  h, k          move backward
+  h, k          [count] images backward
+  l, j          [count] images forward
   g             go to first image
-  G             go to last image
+  G             go to image [count], default last image
   ?             help
   q             quit`,
 		defaultConfigPath)
