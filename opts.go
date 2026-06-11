@@ -26,9 +26,10 @@ func (o options) String() string {
 	b.WriteString("# vim:ft=config\n\n")
 
 	v := reflect.ValueOf(o)
+	t := reflect.TypeFor[options]()
 
 	for i := range v.NumField() {
-		field, val := reflect.TypeOf(o).Field(i), v.Field(i)
+		field, val := t.Field(i), v.Field(i)
 
 		if c := field.Tag.Get("comment"); c != "" {
 			for line := range strings.SplitSeq(c, "\n") {
