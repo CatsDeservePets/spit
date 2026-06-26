@@ -166,7 +166,7 @@ func configDir() string {
 		var err error
 		dir, err = os.UserConfigDir()
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "%s: determining config dir: %s\n", progName, err)
+			fmt.Fprintf(os.Stderr, "spit: determining config dir: %s\n", err)
 			os.Exit(1)
 		}
 	}

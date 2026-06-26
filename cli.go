@@ -8,7 +8,7 @@ import (
 )
 
 var (
-	usageLine   = fmt.Sprintf("usage: %s [-h] [-V] [-p] [-c FILE] [-n VALUE] [-log FILE] [path ...]", progName)
+	usageLine   = "usage: spit [-h] [-V] [-p] [-c FILE] [-n VALUE] [-log FILE] [path ...]"
 	helpMessage = fmt.Sprintf(`
 spit - Show Pictures In Terminal
 

@@ -31,10 +31,7 @@ var knownFormats = []string{
 	".bmp", ".gif", ".jpg", ".jpeg", ".png", ".tif", ".tiff", ".webp",
 }
 
-var (
-	progName          = strings.TrimSuffix(filepath.Base(os.Args[0]), ".exe")
-	defaultConfigPath = filepath.Join(configDir(), "spit", "spit.conf")
-)
+var defaultConfigPath = filepath.Join(configDir(), "spit", "spit.conf")
 
 type picture struct {
 	name          string
@@ -51,13 +48,13 @@ func main() {
 		fmt.Println(usageLine)
 		fmt.Println(helpMessage)
 	case cli.version:
-		fmt.Println(progName, version())
+		fmt.Println("spit", version())
 	case cli.printDefault:
 		fmt.Println(gOpts)
 	default:
 		if err := run(cli); err != nil {
 			errorp(err)
-			fmt.Fprintln(os.Stderr, progName+": "+err.Error())
+			fmt.Fprintln(os.Stderr, "spit: "+err.Error())
 			os.Exit(1)
 		}
 	}
@@ -71,11 +68,11 @@ func run(cli flags) error {
 	if f != nil {
 		defer f.Close()
 	}
-	infof("--------------- starting %s ---------------", progName)
+	infop("--------------- starting spit ---------------")
 	infop("  version: ", version())
 	infop("  pid:     ", os.Getpid())
 	infop("---------------------------------------------")
-	defer infof("--------------- closing %s ----------------\n\n", progName)
+	defer infop("--------------- closing spit ----------------\n\n")
 
 	if err := loadConfig(cli.configPath); err != nil {
 		// Don't force users to always have a config file (even though
@@ -127,7 +124,7 @@ func run(cli flags) error {
 		if last != curr {
 			last = curr
 			if gOpts.title {
-				setTitle(progName + " - " + pics[curr].name)
+				setTitle("spit - " + pics[curr].name)
 			}
 
 			cols, rows, err := term.GetSize(fdOut)
