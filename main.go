@@ -3,12 +3,12 @@ package main
 import (
 	"bufio"
 	"bytes"
+	"errors"
 	"fmt"
 	"image"
 	_ "image/gif"
 	_ "image/jpeg"
 	_ "image/png"
-	"log"
 	"math"
 	"os"
 	"os/exec"
@@ -45,53 +45,65 @@ type picture struct {
 }
 
 func main() {
-	log.SetFlags(0)
-	log.SetPrefix("spit: ")
-
 	cli := parseFlags()
 	switch {
 	case cli.help:
 		fmt.Println(usageLine)
 		fmt.Println(helpMessage)
-		os.Exit(0)
 	case cli.version:
-		fmt.Println(version())
-		os.Exit(0)
+		fmt.Println(progName, version())
 	case cli.printDefault:
 		fmt.Println(gOpts)
-		os.Exit(0)
+	default:
+		if err := run(cli); err != nil {
+			errorp(err)
+			fmt.Fprintln(os.Stderr, progName+": "+err.Error())
+			os.Exit(1)
+		}
 	}
+}
+
+func run(cli flags) error {
+	f, err := setupLog(cli.logPath)
+	if err != nil {
+		return fmt.Errorf("creating log file: %w", err)
+	}
+	if f != nil {
+		defer f.Close()
+	}
+	infof("--------------- starting %s ---------------", progName)
+	infop("  version: ", version())
+	infop("  pid:     ", os.Getpid())
+	infop("---------------------------------------------")
+	defer infof("--------------- closing %s ----------------\n\n", progName)
+
 	if err := loadConfig(cli.configPath); err != nil {
 		// Don't force users to always have a config file (even though
 		// changes to `previewer` will most likely be required anyway).
 		if !os.IsNotExist(err) || cli.configPath != defaultConfigPath {
-			log.Fatalf("loading config: %s", err)
+			return fmt.Errorf("loading config: %w", err)
 		}
 	}
 
-	run(cli)
-}
-
-func run(cli flags) {
 	paths := pathsFromArgs(cli.args)
 	pics := make([]*picture, 0, len(paths))
 
 	for _, p := range paths {
 		pic, err := newPicture(p)
 		if err != nil {
-			log.Print(err)
+			warnp(err)
 		} else if pic != nil {
 			pics = append(pics, pic)
 		}
 	}
 	total := len(pics)
 	if total == 0 {
-		log.Fatal("no images loaded")
+		return fmt.Errorf("no images loaded")
 	}
 
 	curr, err := startIndex(pics, cli.startIdx, cli.startPath)
 	if err != nil {
-		log.Print(err)
+		warnp(err)
 	}
 
 	showAlternateScreen()
@@ -102,7 +114,7 @@ func run(cli flags) {
 
 	oldState, err := term.MakeRaw(fdIn)
 	if err != nil {
-		os.Exit(1)
+		return err
 	}
 
 	defer term.Restore(fdIn, oldState)
@@ -120,17 +132,19 @@ func run(cli flags) {
 
 			cols, rows, err := term.GetSize(fdOut)
 			if err != nil {
-				panic(err)
+				return err
 			}
 			pic := pics[curr]
 			path := pic.path
 
 			errMsg := ""
 			if err := execCmd(generateCmd(gOpts.cleaner, cols, rows, path)); err != nil {
+				errorf("cleaning screen: %s", err)
 				errMsg = "Error clearing screen"
 			}
 			moveCursor(1, 1)
 			if err := execCmd(generateCmd(gOpts.previewer, cols, rows, path)); err != nil {
+				errorf("displaying image: %s", err)
 				errMsg = fmt.Sprintf("Error displaying %q", path)
 			}
 			printStatus(pic, curr+1, total, cols, rows)
@@ -140,11 +154,11 @@ func run(cli flags) {
 		}
 		key, count, err := readKey(reader)
 		if err != nil {
-			return
+			return err
 		}
 		switch key {
 		case 'q':
-			return
+			return nil
 		case 'l', 'j':
 			curr = move(curr, total, max(count, 1))
 		case 'h', 'k':
@@ -253,9 +267,10 @@ func newPicture(path string) (*picture, error) {
 	if err != nil {
 		// DecodeConfig errors are only meaningful for known formats.
 		if slices.Contains(knownFormats, strings.ToLower(filepath.Ext(absPath))) {
-			return nil, &os.PathError{Op: "decode", Path: path, Err: err}
+			return nil, &os.PathError{Op: "decoding", Path: path, Err: err}
+		} else {
+			debugf("skipping validation: %s", path)
 		}
-		// TODO: Log skipped validation
 	}
 
 	return &picture{
@@ -321,9 +336,11 @@ func execCmd(name string, args []string) error {
 	cmd := exec.Command(name, args...)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = &errb
-	// Avoid showing error messages that cannot be cleared.
-	if err := cmd.Run(); err != nil || errb.Len() > 0 {
-		return fmt.Errorf("failed")
+	if err := cmd.Run(); err != nil {
+		return err
+	}
+	if s := strings.TrimSpace(errb.String()); s != "" {
+		return errors.New(strings.Join(strings.Fields(s), " "))
 	}
 	return nil
 }
@@ -453,7 +470,7 @@ func showError(s string, line int) {
 func version() string {
 	bi, ok := debug.ReadBuildInfo()
 	if !ok {
-		return progName + " unknown"
+		return "unknown"
 	}
-	return progName + " " + bi.Main.Version
+	return bi.Main.Version
 }

@@ -14,7 +14,7 @@ go install github.com/CatsDeservePets/spit@latest
 ## Usage
 
 ```
-usage: spit [-h] [-V] [-p] [-c FILE] [-n VALUE] [path ...]
+usage: spit [-h] [-V] [-p] [-c FILE] [-n VALUE] [-log FILE] [path ...]
 
 spit - Show Pictures In Terminal
 
@@ -27,6 +27,7 @@ options:
   -p            print default configuration and exit
   -c FILE       use this configuration file (default: $XDG_CONFIG_HOME/spit/spit.conf)
   -n VALUE      set initial image using 1-based index or filename (default: 1)
+  -log FILE     write debug information to FILE
 
 navigation:
   h, k          [count] images backward

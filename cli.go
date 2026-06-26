@@ -8,7 +8,7 @@ import (
 )
 
 var (
-	usageLine   = fmt.Sprintf("usage: %s [-h] [-V] [-p] [-c FILE] [-n VALUE] [path ...]", progName)
+	usageLine   = fmt.Sprintf("usage: %s [-h] [-V] [-p] [-c FILE] [-n VALUE] [-log FILE] [path ...]", progName)
 	helpMessage = fmt.Sprintf(`
 spit - Show Pictures In Terminal
 
@@ -21,6 +21,7 @@ options:
   -p            print default configuration and exit
   -c FILE       use this configuration file (default: %s)
   -n VALUE      set initial image using 1-based index or filename (default: 1)
+  -log FILE     write debug information to FILE
 
 navigation:
   h, k          [count] images backward
@@ -40,6 +41,7 @@ type flags struct {
 	printDefault bool
 	startIdx     int
 	startPath    string
+	logPath      string
 	args         []string
 }
 
@@ -52,6 +54,7 @@ func parseFlags() flags {
 	flag.BoolVar(&cli.version, "V", false, "")
 	flag.BoolVar(&cli.version, "version", false, "")
 	flag.BoolVar(&cli.printDefault, "p", false, "")
+	flag.StringVar(&cli.logPath, "log", "", "")
 	flag.StringVar(&cli.configPath, "c", defaultConfigPath, "")
 	flag.Func("n", "", func(s string) error {
 		if n, err := strconv.Atoi(s); err == nil {
