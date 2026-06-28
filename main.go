@@ -50,7 +50,7 @@ func main() {
 	case cli.version:
 		fmt.Println("spit", version())
 	case cli.printDefault:
-		fmt.Println(gOpts)
+		fmt.Println(defaultConfig())
 	default:
 		if err := run(cli); err != nil {
 			errorp(err)
@@ -74,7 +74,8 @@ func run(cli flags) error {
 	infop("---------------------------------------------")
 	defer infop("--------------- closing spit ----------------\n\n")
 
-	if err := loadConfig(cli.configPath); err != nil {
+	opt, err := loadConfig(cli.configPath)
+	if err != nil {
 		// Don't force users to always have a config file (even though
 		// changes to `previewer` will most likely be required anyway).
 		if !os.IsNotExist(err) || cli.configPath != defaultConfigPath {
@@ -82,7 +83,7 @@ func run(cli flags) error {
 		}
 	}
 
-	paths := pathsFromArgs(cli.args)
+	paths := pathsFromArgs(cli.args, opt.extensions)
 	pics := make([]*picture, 0, len(paths))
 
 	for _, p := range paths {
@@ -123,7 +124,7 @@ func run(cli flags) error {
 	for {
 		if last != curr {
 			last = curr
-			if gOpts.title {
+			if opt.title {
 				setTitle("spit - " + pics[curr].name)
 			}
 
@@ -135,18 +136,18 @@ func run(cli flags) error {
 			path := pic.path
 
 			errMsg := ""
-			if err := execCmd(generateCmd(gOpts.cleaner, cols, rows, path)); err != nil {
+			if err := execCmd(generateCmd(opt.cleaner, cols, rows, path)); err != nil {
 				errorf("cleaning screen: %s", err)
 				errMsg = "Error clearing screen"
 			}
 			moveCursor(1, 1)
-			if err := execCmd(generateCmd(gOpts.previewer, cols, rows, path)); err != nil {
+			if err := execCmd(generateCmd(opt.previewer, cols, rows, path)); err != nil {
 				errorf("displaying image: %s", err)
 				errMsg = fmt.Sprintf("Error displaying %q", path)
 			}
-			printStatus(pic, curr+1, total, cols, rows)
+			printStatus(opt, pic, curr+1, total, cols, rows)
 			if errMsg != "" {
-				showError(errMsg, rows)
+				showError(opt.errorfmt, errMsg, rows)
 			}
 		}
 		key, count, err := readKey(reader)
@@ -157,9 +158,9 @@ func run(cli flags) error {
 		case 'q':
 			return nil
 		case 'l', 'j':
-			curr = move(curr, total, max(count, 1))
+			curr = move(curr, total, max(count, 1), opt.wrapscroll)
 		case 'h', 'k':
-			curr = move(curr, total, -max(count, 1))
+			curr = move(curr, total, -max(count, 1), opt.wrapscroll)
 		case 'g':
 			// TODO: gg
 			curr = 0
@@ -202,12 +203,12 @@ func isDigit(b byte) bool {
 	return b >= '0' && b <= '9'
 }
 
-func pathsFromArgs(args []string) []string {
+func pathsFromArgs(args, allowList []string) []string {
 	out := make([]string, 0, len(args))
 
 	appendPath := func(p string) {
-		if len(gOpts.extensions) == 0 ||
-			slices.Contains(gOpts.extensions, strings.ToLower(filepath.Ext(p))) {
+		if len(allowList) == 0 ||
+			slices.Contains(allowList, strings.ToLower(filepath.Ext(p))) {
 			out = append(out, p)
 		}
 		// TODO: Log skipped images
@@ -342,9 +343,9 @@ func execCmd(name string, args []string) error {
 	return nil
 }
 
-func move(idx, n, delta int) int {
+func move(idx, n, delta int, wrap bool) int {
 	next := idx + delta
-	if gOpts.wrapscroll {
+	if wrap {
 		next %= n
 		if next < 0 {
 			next += n
@@ -354,13 +355,13 @@ func move(idx, n, delta int) int {
 	return min(max(next, 0), n-1)
 }
 
-func printStatus(pic *picture, idx, total, cols, rows int) {
-	if gOpts.statusline == "" {
+func printStatus(opt options, pic *picture, idx, total, cols, rows int) {
+	if opt.statusline == "" {
 		return
 	}
 
 	var size string
-	if gOpts.humanreadable {
+	if opt.humanreadable {
 		size = fmt.Sprintf("%5s", humanReadable(pic.size))
 	} else {
 		size = fmt.Sprintf("%dB", pic.size)
@@ -375,22 +376,22 @@ func printStatus(pic *picture, idx, total, cols, rows int) {
 		"%t", strconv.Itoa(total),
 		"%w", strconv.Itoa(pic.width),
 	)
-	s := r.Replace(gOpts.statusline)
+	s := r.Replace(opt.statusline)
 	if pic.height == 0 && pic.width == 0 {
 		s = strings.ReplaceAll(strings.ReplaceAll(s, "0x0", "N/A"), "0X0", "N/A")
 	}
 
-	gaps := strings.Count(gOpts.statusline, "%=")
+	gaps := strings.Count(opt.statusline, "%=")
 	excess := (displayWidth(s) - gaps*2) - cols // account for %=
 	if excess > 0 {
 		// try truncating filename if possible
 		if excess < displayWidth(pic.name) {
 			// use runes for slicing to not mess up multi-byte chars
-			repl := gOpts.truncatechar + string([]rune(pic.name)[excess+displayWidth(gOpts.truncatechar):])
+			repl := opt.truncatechar + string([]rune(pic.name)[excess+displayWidth(opt.truncatechar):])
 			s = strings.Replace(s, pic.name, repl, 1)
 		} else {
 			// if still too long, truncate entire string from the left
-			s = gOpts.truncatechar + string([]rune(s)[excess+displayWidth(gOpts.truncatechar):])
+			s = opt.truncatechar + string([]rune(s)[excess+displayWidth(opt.truncatechar):])
 		}
 	}
 
@@ -459,9 +460,9 @@ func runeWidth(r rune) int {
 	return 1
 }
 
-func showError(s string, line int) {
+func showError(errfmt, s string, line int) {
 	reset := "\033[0m"
-	printAt(line, 1, gOpts.errorfmt+s+reset)
+	printAt(line, 1, errfmt+s+reset)
 }
 
 func version() string {

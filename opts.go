@@ -21,6 +21,20 @@ type options struct {
 	wrapscroll    bool     `comment:"Scroll past the last image back to the first one and vice versa"`
 }
 
+func defaultConfig() options {
+	return options{
+		cleaner:       "",
+		errorfmt:      "\033[7;31;47m",
+		extensions:    knownFormats,
+		humanreadable: false,
+		previewer:     "kitten icat --clear --stdin=no --transfer-mode=memory --place=%cx%r@0x0 --scale-up=yes %f",
+		statusline:    "%f %= %wx%h  %s  %i/%t",
+		title:         false,
+		truncatechar:  "<",
+		wrapscroll:    true,
+	}
+}
+
 func (o options) String() string {
 	var b strings.Builder
 	b.WriteString("# vim:ft=config\n\n")
@@ -64,26 +78,64 @@ func (o options) String() string {
 	return b.String()
 }
 
-var gOpts options
-
-func init() {
-	gOpts = options{
-		cleaner:       "",
-		errorfmt:      "\033[7;31;47m",
-		extensions:    knownFormats,
-		humanreadable: false,
-		previewer:     "kitten icat --clear --stdin=no --transfer-mode=memory --place=%cx%r@0x0 --scale-up=yes %f",
-		statusline:    "%f %= %wx%h  %s  %i/%t",
-		title:         false,
-		truncatechar:  "<",
-		wrapscroll:    true,
+func (o *options) update(key, val string) error {
+	switch key {
+	case "cleaner":
+		o.cleaner = val
+	case "errorfmt":
+		o.errorfmt = val
+	case "extensions":
+		items := strings.Split(val, ",")
+		var exts []string
+		for _, it := range items {
+			if e := strings.TrimSpace(it); e != "" {
+				if !strings.HasPrefix(e, ".") {
+					e = "." + e
+				}
+				exts = append(exts, e)
+			}
+		}
+		o.extensions = exts
+	case "humanreadable":
+		b, err := strconv.ParseBool(val)
+		if err != nil {
+			return fmt.Errorf("invalid value for humanreadable: %w", err)
+		}
+		o.humanreadable = b
+	case "previewer":
+		o.previewer = val
+	case "statusline":
+		o.statusline = val
+	case "title":
+		b, err := strconv.ParseBool(val)
+		if err != nil {
+			return fmt.Errorf("invalid value for title: %w", err)
+		}
+		o.title = b
+	case "truncatechar":
+		if displayWidth(val) != 1 {
+			return fmt.Errorf("invalid value for truncatechar: %s", val)
+		}
+		o.truncatechar = val
+	case "wrapscroll":
+		b, err := strconv.ParseBool(val)
+		if err != nil {
+			return fmt.Errorf("invalid value for wrapscroll: %w", err)
+		}
+		o.wrapscroll = b
+	default:
+		return fmt.Errorf("unknown option: %s", key)
 	}
+
+	return nil
 }
 
-func loadConfig(path string) error {
+func loadConfig(path string) (options, error) {
+	opt := defaultConfig()
+
 	f, err := os.Open(path)
 	if err != nil {
-		return err
+		return opt, err
 	}
 	defer f.Close()
 
@@ -103,55 +155,11 @@ func loadConfig(path string) error {
 			val = tmp
 		}
 
-		switch key {
-		case "cleaner":
-			gOpts.cleaner = val
-		case "errorfmt":
-			gOpts.errorfmt = val
-		case "extensions":
-			items := strings.Split(val, ",")
-			var exts []string
-			for _, it := range items {
-				if e := strings.TrimSpace(it); e != "" {
-					if !strings.HasPrefix(e, ".") {
-						e = "." + e
-					}
-					exts = append(exts, e)
-				}
-			}
-			gOpts.extensions = exts
-		case "humanreadable":
-			b, err := strconv.ParseBool(val)
-			if err != nil {
-				return fmt.Errorf("invalid value for humanreadable: %w", err)
-			}
-			gOpts.humanreadable = b
-		case "previewer":
-			gOpts.previewer = val
-		case "statusline":
-			gOpts.statusline = val
-		case "title":
-			b, err := strconv.ParseBool(val)
-			if err != nil {
-				return fmt.Errorf("invalid value for title: %w", err)
-			}
-			gOpts.title = b
-		case "truncatechar":
-			if displayWidth(val) != 1 {
-				return fmt.Errorf("invalid value for truncatechar: %s", val)
-			}
-			gOpts.truncatechar = val
-		case "wrapscroll":
-			b, err := strconv.ParseBool(val)
-			if err != nil {
-				return fmt.Errorf("invalid value for wrapscroll: %w", err)
-			}
-			gOpts.wrapscroll = b
-		default:
-			return fmt.Errorf("unknown option: %s", key)
+		if err := opt.update(key, val); err != nil {
+			return opt, err
 		}
 	}
-	return s.Err()
+	return opt, s.Err()
 }
 
 // configDir is like [os.UserConfigDir], but looks for $XDG_CONFIG_HOME on all
