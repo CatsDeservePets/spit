@@ -38,7 +38,6 @@ type picture struct {
 	path          string
 	size          int64
 	width, height int
-	format        string
 }
 
 func main() {
@@ -261,7 +260,7 @@ func newPicture(path string) (*picture, error) {
 		return nil, err
 	}
 
-	cfg, format, err := image.DecodeConfig(f)
+	cfg, _, err := image.DecodeConfig(f)
 	if err != nil {
 		// DecodeConfig errors are only meaningful for known formats.
 		if slices.Contains(knownFormats, strings.ToLower(filepath.Ext(absPath))) {
@@ -277,7 +276,6 @@ func newPicture(path string) (*picture, error) {
 		size:   info.Size(),
 		width:  cfg.Width,
 		height: cfg.Height,
-		format: format,
 	}, nil
 }
 
