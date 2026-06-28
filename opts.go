@@ -70,7 +70,7 @@ func init() {
 	gOpts = options{
 		cleaner:       "",
 		errorfmt:      "\033[7;31;47m",
-		extensions:    []string{".bmp", ".gif", ".jpg", ".jpeg", ".png", ".tif", ".tiff", ".webp"},
+		extensions:    knownFormats,
 		humanreadable: false,
 		previewer:     "kitten icat --clear --stdin=no --transfer-mode=memory --place=%cx%r@0x0 --scale-up=yes %f",
 		statusline:    "%f %= %wx%h  %s  %i/%t",
