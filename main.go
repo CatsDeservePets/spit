@@ -103,9 +103,6 @@ func run(cli flags) error {
 		warnp(err)
 	}
 
-	showAlternateScreen()
-	hideCursor()
-
 	fdIn := int(os.Stdin.Fd())
 	fdOut := int(os.Stdout.Fd())
 
@@ -113,9 +110,12 @@ func run(cli flags) error {
 	if err != nil {
 		return err
 	}
-
 	defer term.Restore(fdIn, oldState)
+
+	showAlternateScreen()
 	defer hideAlternateScreen()
+
+	hideCursor()
 	defer showCursor()
 
 	reader := bufio.NewReader(os.Stdin)
