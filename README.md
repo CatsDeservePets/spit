@@ -85,7 +85,7 @@ If `$XDG_CONFIG_HOME` is not set, it falls back to:
 	macOS    ~/Library/Application Support/spit/spit.conf
 	Windows  %AppData%\spit\spit.conf
 
-The `-config` flag takes precedence over all of the above.
+The `-c` flag takes precedence over all of the above.
 
 ### Default configuration
 
